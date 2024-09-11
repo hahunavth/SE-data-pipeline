@@ -56,6 +56,8 @@ def download_audio(video_url, output_dir="./", print_err=True):
         return None
 
     output_file = os.path.join(output_dir, f"{video_id}.wav")
+    if not os.path.exists(output_file):
+        return None
 
     return output_file
 
