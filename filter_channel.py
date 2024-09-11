@@ -10,7 +10,7 @@ def channel_check(url, verbose=False):
     if verbose:
         print(f"start {url}")
     try:
-        audio_paths = download_and_cut_n_audio(url, "./step1", max_per_chanel=1)
+        audio_paths = download_and_cut_n_audio(url, "./step1", max_per_chanel=2)
         if verbose:
             print("N audio paths:", len(audio_paths))
         seg_fpaths_lists = [vad_split(fpath, output_dir="./step2") for fpath in audio_paths]
