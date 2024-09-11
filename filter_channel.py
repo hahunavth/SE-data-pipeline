@@ -10,7 +10,9 @@ from vad import vad_split
 from youtube import download_and_cut_n_audio
 
 
-def channel_check(url, verbose=False, clean_step_1=True, clean_step_2=True):
+def channel_check(args):
+    # url, verbose=False, clean_step_1=True, clean_step_2=True
+    url, verbose, clean_step_1, clean_step_2 = args
     if verbose:
         print(f"start {url}")
     try:
