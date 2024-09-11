@@ -59,12 +59,12 @@ import multiprocessing
 import sys
 
 
-def main(fpath, n_process=2, verbose=False, clean_step_1=True, clean_step_2=True):
+def main(fpath, n_process=2, verbose=False, no_clean_step_1=False, no_clean_step_2=False):
     with open(fpath, "r") as f:
         channel_urls = [l.strip() for l in f.readlines()]
 
     with multiprocessing.get_context('spawn').Pool(n_process) as pool:
-        pool.map(channel_check, [(url, verbose, clean_step_1, clean_step_2) for url in channel_urls])
+        pool.map(channel_check, [(url, verbose, not no_clean_step_1, not no_clean_step_2) for url in channel_urls])
 
 
 
