@@ -12,7 +12,9 @@ def estimate_snr(audio, frame_length=2048, hop_length=512, noise_threshold=0.02)
         signal_power = np.mean(rms_values[~noise_frames] ** 2)
         noise_power = np.mean(rms_values[noise_frames] ** 2)
         snr = 10 * np.log10(signal_power / noise_power)
+        if snr != snr: # snr is nan
+            return 0
+        return snr
     except Exception as e:
-        print(e)
+        # print(e)
         return 0
-    return snr
