@@ -43,6 +43,19 @@ def channel_check(url, verbose=False):
     except Exception as e:
         print(f"Error: {e}")
 
+
+import sys
+import multiprocessing
+
+def main(fpath, n_process=2):
+    with open(fpath, "r") as f:
+        channel_urls = [l.strip() for l in f.readlines()]
+
+    with multiprocessing.get_context('spawn').Pool(n_process) as pool:
+        pool.map(channel_check, channel_urls)
+
+
+
 if __name__ == '__main__':
     # channel_urls = [
     #     'https://www.youtube.com/@MixiGaming3con', 
@@ -53,11 +66,5 @@ if __name__ == '__main__':
     #     "https://www.youtube.com/@bonao",
     #     "https://www.youtube.com/@MacOnevn",
     # ]
-    import sys
-    import multiprocessing
-
-    with open(sys.argv[1], "r") as f:
-        channel_urls = [l.strip() for l in f.readlines()]
-
-    with multiprocessing.get_context('spawn').Pool(2) as pool:
-        pool.map(channel_check, channel_urls)
+    from fire import Fire
+    Fire(main)
