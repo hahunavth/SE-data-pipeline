@@ -1,0 +1,6 @@
+tqdm
+
+yt-dlp[default]
+
+# torch
+pyannote.audio
