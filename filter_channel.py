@@ -1,10 +1,14 @@
+import json
+import os
+
+import librosa  # Ensure this import is here if you're using librosa for loading audio
+import torch
+
 from ac import classify_audio_batch
 from snr import estimate_snr
 from vad import vad_split
 from youtube import download_and_cut_n_audio
-import librosa  # Ensure this import is here if you're using librosa for loading audio
-import os
-import torch
+
 
 def channel_check(url, verbose=False):
     if verbose:
@@ -34,23 +38,24 @@ def channel_check(url, verbose=False):
             print(e)
         
         print(f"Final result: {url}")
-        with open("out.txt", "a") as f:
-            f.write(str({
+        with open("out.jsonl", "a") as f:
+            f.write(json.dumps({
                 "url": url,
                 "snrss": snrss,
                 "acss": acss,
             }) + "\n")
     except Exception as e:
         print(f"Error: {e}")
-        with open("err.txt", "a") as f:
-            f.write(str({
+        with open("err.jsonl", "a") as f:
+            f.write(json.dumps({
                 "url": url,
-                "error": str(e),
+                "error": str(e).replace("\n", " "),
             }) + "\n")
 
 
-import sys
 import multiprocessing
+import sys
+
 
 def main(fpath, n_process=2):
     with open(fpath, "r") as f:

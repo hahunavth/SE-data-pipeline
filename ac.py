@@ -14,18 +14,19 @@ lock = Lock()
 def classify_audio_batch(fpaths):
     with lock:
         predictions = pipe(fpaths, batch_size=8)  # Process in batches of 8
-    results = []
-    for pred in predictions:
-        scores = {i["label"]: i["score"] for i in pred}
-        labels = [i["label"] for i in pred]
-        if "Speech" not in labels:
-            results.append(False)
-            continue
-        if scores["Speech"] < 0.8:
-            results.append(False)
-            continue
-        if list(scores.values())[1] > 0.15:
-            results.append(False)
-            continue
-        results.append(True)
-    return results
+        return predictions
+    # results = []
+    # for pred in predictions:
+    #     scores = {i["label"]: i["score"] for i in pred}
+    #     labels = [i["label"] for i in pred]
+    #     if "Speech" not in labels:
+    #         results.append(False)
+    #         continue
+    #     if scores["Speech"] < 0.8:
+    #         results.append(False)
+    #         continue
+    #     if list(scores.values())[1] > 0.15:
+    #         results.append(False)
+    #         continue
+    #     results.append(True)
+    # return results
