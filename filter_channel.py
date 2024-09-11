@@ -42,6 +42,11 @@ def channel_check(url, verbose=False):
             }) + "\n")
     except Exception as e:
         print(f"Error: {e}")
+        with open("err.txt", "a") as f:
+            f.write(str({
+                "url": url,
+                "error": str(e),
+            }) + "\n")
 
 
 import sys
