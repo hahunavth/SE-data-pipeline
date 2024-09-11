@@ -6,19 +6,24 @@ import librosa  # Ensure this import is here if you're using librosa for loading
 import os
 import torch
 
-def channel_check(url):
-    print(f"start {url}")
+def channel_check(url, verbose=False):
+    if verbose:
+        print(f"start {url}")
     try:
         audio_paths = download_and_cut_n_audio(url, "./step1", max_per_chanel=1)
-        print(audio_paths)
+        if verbose:
+            print("N audio paths:", len(audio_paths))
         seg_fpaths_lists = [vad_split(fpath, output_dir="./step2") for fpath in audio_paths]
-        print(seg_fpaths_lists)
+        if verbose:
+            print("N segments:", len(seg_fpaths_lists))
         snrss = [estimate_snr(librosa.load(f)[0]) for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
 
         # Classify all segments in batches
         flat_fpaths = [f for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
         acss = classify_audio_batch(flat_fpaths)
         torch.cuda.empty_cache() # Clear GPU memory
+        if verbose:
+            print("AC true:", acss.count(True))
 
         try:
             for f in flat_fpaths:
