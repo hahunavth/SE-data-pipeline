@@ -4,3 +4,4 @@ yt-dlp[default]
 
 # torch
 pyannote.audio
+silero_vad

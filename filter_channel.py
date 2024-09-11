@@ -4,6 +4,7 @@ from vad import vad_split
 from youtube import download_and_cut_n_audio
 import librosa  # Ensure this import is here if you're using librosa for loading audio
 import os
+import torch
 
 def channel_check(url):
     print(f"start {url}")
@@ -17,9 +18,12 @@ def channel_check(url):
         # Classify all segments in batches
         flat_fpaths = [f for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
         acss = classify_audio_batch(flat_fpaths)
+        torch.cuda.empty_cache() # Clear GPU memory
 
         try:
             for f in flat_fpaths:
+                os.remove(f)
+            for f in audio_paths:
                 os.remove(f)
         except Exception as e:
             print(e)
@@ -27,6 +31,7 @@ def channel_check(url):
         print(f"Final result: {url}")
         with open("out.txt", "a") as f:
             f.write(str({
+                "url": url,
                 "snrss": snrss,
                 "acss": acss,
             }) + "\n")
