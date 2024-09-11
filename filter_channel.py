@@ -10,7 +10,7 @@ from vad import vad_split
 from youtube import download_and_cut_n_audio
 
 
-def channel_check(url, verbose=False):
+def channel_check(url, verbose=False, clean_step_1=True, clean_step_2=True):
     if verbose:
         print(f"start {url}")
     try:
@@ -30,10 +30,12 @@ def channel_check(url, verbose=False):
             print("AC true:", acss.count(True))
 
         try:
-            for f in flat_fpaths:
-                os.remove(f)
-            for f in audio_paths:
-                os.remove(f)
+            if clean_step_1:
+                for f in flat_fpaths:
+                    os.remove(f)
+            if clean_step_2:
+                for f in audio_paths:
+                    os.remove(f)
         except Exception as e:
             print(e)
         
@@ -57,12 +59,12 @@ import multiprocessing
 import sys
 
 
-def main(fpath, n_process=2):
+def main(fpath, n_process=2, verbose=False, clean_step_1=True, clean_step_2=True):
     with open(fpath, "r") as f:
         channel_urls = [l.strip() for l in f.readlines()]
 
     with multiprocessing.get_context('spawn').Pool(n_process) as pool:
-        pool.map(channel_check, channel_urls)
+        pool.map(channel_check, [(url, verbose, clean_step_1, clean_step_2) for url in channel_urls])
 
 
 
