@@ -48,6 +48,8 @@ def channel_check(url, verbose=False, clean_step_1=True, clean_step_2=True):
             }) + "\n")
     except Exception as e:
         print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
         with open("err.jsonl", "a") as f:
             f.write(json.dumps({
                 "url": url,
