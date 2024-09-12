@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import time
 
 import numpy as np
 import soundfile as sf
@@ -25,7 +26,7 @@ def get_youtube_playlist_ids(channel_url, print_err=True):
         return None
 
 
-def check_audio_quality_48k(url):
+def check_audio_quality_48k(url, retry_if_error=True):
     try:
         result = subprocess.run(["yt-dlp", "-F", url], capture_output=True, text=True)
 
@@ -35,10 +36,19 @@ def check_audio_quality_48k(url):
             return False
 
         output = result.stdout
+        is_req_valid = False
         for line in output.splitlines():
+            if "audio only" in line:
+                is_req_valid = True
             if "audio only" in line and ("48000Hz" in line or "48k" in line):
                 # print(f"Found 48kHz audio: {line}")
                 return True
+        if not is_req_valid:
+            time.sleep(0.5)
+            if retry_if_error:
+                return check_audio_quality_48k(url, retry_if_error=False)
+            else:
+                return False
 
         # If no 48kHz audio was found
         return False
