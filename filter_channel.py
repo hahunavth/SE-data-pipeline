@@ -12,9 +12,9 @@ from youtube import download_and_cut_n_audio
 
 def channel_check(args):
     # url, verbose=False, clean_step_1=True, clean_step_2=True
-    url, verbose, clean_step_1, clean_step_2 = args
+    i, url, verbose, clean_step_1, clean_step_2 = args
     if verbose:
-        print(f"start {url}")
+        print(f"start[{i}]: {url}")
     try:
         audio_paths = download_and_cut_n_audio(url, "./step1", max_per_chanel=2)
         if verbose:
@@ -33,10 +33,11 @@ def channel_check(args):
 
         try:
             if clean_step_1:
-                for f in flat_fpaths:
-                    os.remove(f)
-            if clean_step_2:
                 for f in audio_paths:
+                    os.remove(f)
+                
+            if clean_step_2:
+                for f in flat_fpaths:
                     os.remove(f)
         except Exception as e:
             print(e)
@@ -68,7 +69,7 @@ def main(fpath, n_process=2, verbose=False, no_clean_step_1=False, no_clean_step
         channel_urls = [l.strip() for l in f.readlines()]
 
     with multiprocessing.get_context('spawn').Pool(n_process) as pool:
-        pool.map(channel_check, [(url, verbose, not no_clean_step_1, not no_clean_step_2) for url in channel_urls])
+        pool.map(channel_check, [(i, url, verbose, not no_clean_step_1, not no_clean_step_2) for i, url in enumerate(channel_urls)])
 
 
 
