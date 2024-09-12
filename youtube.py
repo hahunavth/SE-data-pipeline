@@ -25,6 +25,28 @@ def get_youtube_playlist_ids(channel_url, print_err=True):
         return None
 
 
+def check_audio_quality_48k(url):
+    try:
+        result = subprocess.run(["yt-dlp", "-F", url], capture_output=True, text=True)
+
+        # if error fetching formats
+        if result.returncode != 0:
+            # print(f"Error fetching formats: {result.stderr}")
+            return False
+
+        output = result.stdout
+        for line in output.splitlines():
+            if "audio only" in line and ("48000Hz" in line or "48k" in line):
+                # print(f"Found 48kHz audio: {line}")
+                return True
+
+        # If no 48kHz audio was found
+        return False
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
+
 def download_audio(video_url, output_dir="./", print_err=True):
     #     try:
     os.makedirs(output_dir, exist_ok=True)
@@ -103,6 +125,8 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
         for video_id in video_ids:
             video_url = f"https://www.youtube.com/watch?v={video_id}"
 
+            if not check_audio_quality_48k(video_url):
+                raise Exception(f"Audio quality is not 48kHz: {video_url}")
             audio_path = download_audio(video_url, os.path.join(output_dir, "step1.1"))
             if audio_path:
                 audio_path = cut_audio_to_10_minutes(
@@ -113,3 +137,4 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
         return audio_paths
     except Exception as e:
         print(f"An error occurred during processing: {e}")
+        raise e # test
