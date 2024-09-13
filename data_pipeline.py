@@ -62,6 +62,7 @@ def main(
         logging.info(f"Processing channel {channel_id} ({channel_url})")
         # print(get_youtube_playlist_ids(url))
 
+        logging.debug("Getting video ids")
         video_ids = get_youtube_playlist_ids(channel_url)
         if len(video_ids) < 3:
             logging.warning(f"Channel {channel_id} has less than 3 videos")
@@ -71,6 +72,7 @@ def main(
                 f.write(f"{channel_id}\n")
             continue
 
+        logging.debug("Downloading audio")
         audio_paths = []
         for video_id in video_ids[:3]: # download 3 audios
             try:
@@ -80,6 +82,7 @@ def main(
                 logging.error(f"An error occurred: {e}")
 
         # vad
+        logging.debug("VAD")
         segments_path = []
         segments_meta_vad = []
         segments_video_id = []
