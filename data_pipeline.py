@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 
 import librosa
 import torch
@@ -15,6 +16,8 @@ from yt_download import (
     check_audio_quality_48k,
     download_audio,
 )
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main(
@@ -32,7 +35,12 @@ def main(
     min_ac_speech_prob=0.9,
     # hf
     split="train",
+    # log
+    verbose=False,
 ):
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     if isinstance(df_or_path, str):
         df = pd.read_csv(df_or_path)
     else:
@@ -51,12 +59,12 @@ def main(
         channel_id = row["id"]
         channel_custom_id = row["custom_url"] # @alias
         channel_url = row["url"]
-        print(channel_url)
+        logging.info(f"Processing channel {channel_id} ({channel_url})")
         # print(get_youtube_playlist_ids(url))
 
         video_ids = get_youtube_playlist_ids(channel_url)
         if len(video_ids) < 3:
-            print(f"Channel {channel_id} has less than 3 videos")
+            logging.warning(f"Channel {channel_id} has less than 3 videos")
             # skip
             # TODO: log
             with open("tmp/skipped_channels.txt", "a") as f:
@@ -69,7 +77,7 @@ def main(
                 audio_path = download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir)
                 audio_paths.append(audio_path)
             except Exception as e:
-                print(f"An error occurred: {e}")
+                logging.error(f"An error occurred: {e}")
 
         # vad
         segments_path = []
@@ -88,12 +96,15 @@ def main(
                 segments_meta_vad.extend(_segments_meta)
                 segments_video_id.extend([video_id] * len(_segments_path))
             except Exception as e:
-                print(f"An error occurred: {e}")
+                logging.error(f"An error occurred: {e}")
 
         # snr
+        logging.debug("Estimating SNR")
         segments_snr = [estimate_snr(librosa.load(f)[0]) for f in segments_path]
+        logging.debug(f"SNR: {segments_snr}")
 
         # ac
+        logging.debug("Classifying audio")
         acss = classify_audio_batch(segments_path)
         torch.cuda.empty_cache()
         speech_probs = []
@@ -101,6 +112,7 @@ def main(
             for item in ac:
                 if item["label"] == "Speech":
                     speech_probs.append(item["score"])
+        logging.debug(f"AC: {acss}")
 
         # refine
         channel_refined_ds_segments_meta = []
