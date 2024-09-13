@@ -17,7 +17,24 @@ from yt_download import (
     download_audio,
 )
 
-logging.basicConfig(level=logging.INFO)
+# Create a custom logger
+logger = logging.getLogger(__name__)
+
+# Create handlers
+c_handler = logging.StreamHandler()
+f_handler = logging.FileHandler('pipeline.log')
+c_handler.setLevel(logging.WARNING)
+f_handler.setLevel(logging.ERROR)
+
+# Create formatters and add it to handlers
+c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+c_handler.setFormatter(c_format)
+f_handler.setFormatter(f_format)
+
+# Add handlers to the logger
+logger.addHandler(c_handler)
+logger.addHandler(f_handler)
 
 
 def main(
@@ -39,7 +56,7 @@ def main(
     verbose=False,
 ):
     if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        c_handler.setLevel(logging.DEBUG)
 
     if isinstance(df_or_path, str):
         df = pd.read_csv(df_or_path)
@@ -59,30 +76,30 @@ def main(
         channel_id = row["id"]
         channel_custom_id = row["custom_url"] # @alias
         channel_url = row["url"]
-        logging.info(f"Processing channel {channel_id} ({channel_url})")
+        logger.info(f"Processing channel {channel_id} ({channel_url})")
         # print(get_youtube_playlist_ids(url))
 
-        logging.debug("Getting video ids")
+        logger.debug("Getting video ids")
         video_ids = get_youtube_playlist_ids(channel_url)
         if len(video_ids) < 3:
-            logging.warning(f"Channel {channel_id} has less than 3 videos")
+            logger.warning(f"Channel {channel_id} has less than 3 videos")
             # skip
             # TODO: log
             with open("tmp/skipped_channels.txt", "a") as f:
                 f.write(f"{channel_id}\n")
             continue
 
-        logging.debug("Downloading audio")
+        logger.debug("Downloading audio")
         audio_paths = []
         for video_id in video_ids[:3]: # download 3 audios
             try:
                 audio_path = download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir)
                 audio_paths.append(audio_path)
             except Exception as e:
-                logging.error(f"An error occurred: {e}")
+                logger.error(f"An error occurred: {e}")
 
         # vad
-        logging.debug("VAD")
+        logger.debug("VAD")
         segments_path = []
         segments_meta_vad = []
         segments_video_id = []
@@ -99,15 +116,15 @@ def main(
                 segments_meta_vad.extend(_segments_meta)
                 segments_video_id.extend([video_id] * len(_segments_path))
             except Exception as e:
-                logging.error(f"An error occurred: {e}")
+                logger.error(f"An error occurred: {e}")
 
         # snr
-        logging.debug("Estimating SNR")
+        logger.debug("Estimating SNR")
         segments_snr = [estimate_snr(librosa.load(f)[0]) for f in segments_path]
-        logging.debug(f"SNR: {segments_snr}")
+        logger.debug(f"SNR: {segments_snr}")
 
         # ac
-        logging.debug("Classifying audio")
+        logger.debug("Classifying audio")
         acss = classify_audio_batch(segments_path)
         torch.cuda.empty_cache()
         speech_probs = []
@@ -115,7 +132,7 @@ def main(
             for item in ac:
                 if item["label"] == "Speech":
                     speech_probs.append(item["score"])
-        logging.debug(f"AC: {acss}")
+        logger.debug(f"AC: {acss}")
 
         # refine
         channel_refined_ds_segments_meta = []
