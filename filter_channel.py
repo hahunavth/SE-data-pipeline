@@ -4,10 +4,10 @@ import os
 import librosa  # Ensure this import is here if you're using librosa for loading audio
 import torch
 
-from ac import classify_audio_batch
-from snr import estimate_snr
-from vad import vad_split
-from youtube import download_and_cut_n_audio
+from audio_ac import classify_audio_batch
+from audio_snr import estimate_snr
+from audio_vad import vad_split
+from yt_download import download_and_cut_n_audio
 
 
 def channel_check(args):
@@ -19,7 +19,7 @@ def channel_check(args):
         audio_paths = download_and_cut_n_audio(url, "./step1", max_per_chanel=2)
         if verbose:
             print("N audio paths:", len(audio_paths))
-        seg_fpaths_lists = [vad_split(fpath, output_dir="./step2") for fpath in audio_paths]
+        seg_fpaths_lists = [vad_split(fpath, output_dir="./step2")[0] for fpath in audio_paths]
         if verbose:
             print("N segments:", len(seg_fpaths_lists))
         snrss = [estimate_snr(librosa.load(f)[0]) for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]

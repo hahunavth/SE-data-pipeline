@@ -2,10 +2,13 @@ import torch
 from transformers import pipeline
 from multiprocessing import Lock
 
+cache_dir = "./cache/audio_ac_cache"
+
 pipe = pipeline(
     "audio-classification",
     model="MIT/ast-finetuned-audioset-10-10-0.4593",
     device="cuda" if torch.cuda.is_available() else "cpu",
+    cache_dir=cache_dir
 )
 
 lock = Lock()

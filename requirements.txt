@@ -2,7 +2,10 @@ fire
 tqdm
 
 yt-dlp[default]
+pydub
 
 # torch
 pyannote.audio
 silero_vad
+transformers
+datasets

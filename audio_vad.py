@@ -31,7 +31,8 @@ def vad_split(
         if save and output_dir:
             os.makedirs(output_dir, exist_ok=True)
 
-        cut_segments = []
+        segments = []
+        segments_meta = []
 
         prog = tqdm(speech_timestamps) if use_tqdm else speech_timestamps
 
@@ -46,9 +47,10 @@ def vad_split(
                     output_dir, f"{video_id}_segment_{str(i).zfill(8)}.wav"
                 )
                 sf.write(seg_path, segment, sampling_rate)
-                cut_segments.append(seg_path)
+                segments.append(seg_path)
+                segments_meta.append(ts)
 
-        return cut_segments
+        return segments, segments_meta
     except Exception as e:
         print(e)
 

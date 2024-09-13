@@ -20,7 +20,8 @@ def get_youtube_playlist_ids(channel_url, print_err=True):
             if print_err:
                 print(f"Error: {result.stderr}")
             return None
-        return result.stdout.strip().split("\n")
+        ids = result.stdout.strip().split("\n")
+        return [ids for ids in ids if ids]
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
