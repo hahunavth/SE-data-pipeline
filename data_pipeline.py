@@ -6,6 +6,7 @@ import librosa
 import torch
 from tqdm import tqdm
 import pandas as pd
+from huggingface_hub import upload_folder
 
 from audio_ac import classify_audio_batch
 from audio_snr import estimate_snr
@@ -52,6 +53,7 @@ def main(
     min_ac_speech_prob=0.9,
     # hf
     split="train",
+    repo_id=None,
     # log
     verbose=False,
 ):
@@ -175,15 +177,19 @@ def main(
         for f in audio_paths:
             os.remove(f)
 
+    if os.path.exists(download_dir):
+        os.rmdir(download_dir)
+
     # save ext_channels_meta json
-    with open("tmp/ext_channels_meta.json", "w") as f:
+    with open("tmp/_metadata.json", "w") as f:
         json.dump(ext_channels_meta, f)
     # upload to huggingface
-    from datasets import Dataset
-    ds = Dataset.from_dict(ds_segments_meta)
-    ds.map(lambda x: {"audio": librosa.load(f"{segments_dir}/{x['idx']}.wav")[0]}) # ,remove_columns=["idx"]
-    ds.save_to_disk("tmp/ds")
-    ds.push_to_hub("hahunavth/se_yt_v1", use_temp_dir=True, split=split) 
+    upload_folder(
+        repo_id=repo_id,
+        repo_type="dataset",
+        path="tmp",
+        path_in_repo=f"{split}",
+    )
 
 if __name__ == "__main__":
     from fire import Fire
