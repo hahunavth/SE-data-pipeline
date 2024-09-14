@@ -64,6 +64,7 @@ def main(
     if verbose:
         logger.setLevel(logging.DEBUG)
         c_handler.setLevel(logging.DEBUG)
+        f_handler.setLevel(logging.DEBUG)
 
     if isinstance(df_or_path, str):
         df = pd.read_csv(df_or_path)
