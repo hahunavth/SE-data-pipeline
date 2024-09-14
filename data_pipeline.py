@@ -236,6 +236,7 @@ from tqdm import tqdm
 import pandas as pd
 from huggingface_hub import upload_folder, repo_exists, create_repo
 from multiprocessing import Pool
+import multiprocessing
 
 from audio_ac import classify_audio_batch
 from audio_snr import estimate_snr
@@ -274,7 +275,7 @@ def process_channel(row, min_snr, min_ac_speech_prob):
     selected_channel_meta["videos"] = {}
 
     channel_id = row["id"]
-    channel_custom_id = row["custom_url"]  # @alias
+    # channel_custom_id = row["custom_url"]  # @alias
     channel_url = row["url"]
     logger.info(f"Processing channel {channel_id} ({channel_url})")
 
@@ -360,7 +361,8 @@ def main(
     all_segments_meta = {}
     selected_channels_meta = {}
 
-    with Pool() as pool:
+    # with Pool() as pool:
+    with multiprocessing.get_context('spawn').Pool() as pool:
         results = pool.starmap(process_channel, [(row, min_snr, min_ac_speech_prob) for _, row in df.iterrows()])
     
     for all_channel_meta, selected_channel_meta in results:
