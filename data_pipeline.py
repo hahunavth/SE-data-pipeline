@@ -219,6 +219,7 @@ def main(
         folder_path="tmp",
         path_in_repo=split,
     )
+    os.rmdir("tmp")
 
 if __name__ == "__main__":
     from fire import Fire
