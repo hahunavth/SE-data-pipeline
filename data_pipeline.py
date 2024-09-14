@@ -267,6 +267,13 @@ logger.addHandler(f_handler)
 download_dir = "tmp/downloaded"
 segments_dir = "tmp/segments"
 
+import numpy as np
+
+def convert_numpy(obj):
+    if isinstance(obj, np.generic):
+        return obj.item()  # Convert NumPy scalar to native Python type
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
 # Function to process each channel
 def process_channel(row, min_snr, min_ac_speech_prob):
     all_channel_meta = {**row}
@@ -373,11 +380,11 @@ def main(
     if os.path.exists(download_dir):
         os.rmdir(download_dir)
 
+    # Serialize with custom NumPy conversion
     with open("tmp/metadata_all.json", "w", encoding='utf-8') as f:
-        f.write(json.dumps(all_segments_meta, indent=4, ensure_ascii=False))
+        f.write(json.dumps(all_segments_meta, indent=4, ensure_ascii=False, default=convert_numpy))
     with open("tmp/metadata_selected.json", "w", encoding='utf-8') as f:
-        f.write(json.dumps(selected_channels_meta, indent=4, ensure_ascii=False))
-
+        f.write(json.dumps(selected_channels_meta, indent=4, ensure_ascii=False, default=convert_numpy))
     repo_type = "dataset"
     if not repo_exists(repo_id, repo_type=repo_type):
         create_repo(repo_id, repo_type=repo_type, private=True)
