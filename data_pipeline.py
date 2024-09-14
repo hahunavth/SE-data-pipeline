@@ -74,7 +74,7 @@ def main(
     download_dir = "tmp/downloaded"
     segments_dir = "tmp/segments"
 
-    all_segments_meta = [] # huggingface dataset meta (sample level)
+    all_segments_meta = {} # huggingface dataset meta (sample level)
     selected_channels_meta = {} # external dataset meta (tree: channel -> video -> segment)
 
     for i, row in tqdm(df.iterrows(), total=len(df)):
