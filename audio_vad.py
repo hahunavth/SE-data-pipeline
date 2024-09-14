@@ -44,7 +44,7 @@ def vad_split(
 
             if save and output_dir:
                 seg_path = os.path.join(
-                    output_dir, f"{video_id}_segment_{str(i).zfill(8)}.wav"
+                    output_dir, f"{video_id}_{str(i).zfill(8)}.wav"
                 )
                 sf.write(seg_path, segment, sampling_rate)
                 segments.append(seg_path)

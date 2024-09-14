@@ -73,12 +73,14 @@ def main(
     download_dir = "tmp/downloaded"
     segments_dir = "tmp/segments"
 
-    ds_segments_meta = [] # huggingface dataset meta (sample level)
-    ext_channels_meta = {} # external dataset meta (tree: channel -> video -> segment)
+    all_segments_meta = [] # huggingface dataset meta (sample level)
+    selected_channels_meta = {} # external dataset meta (tree: channel -> video -> segment)
 
     for i, row in tqdm(df.iterrows(), total=len(df)):
-        channel_meta = {**row}
-        channel_meta["videos"] = {}
+        all_channel_meta = {**row}
+        all_channel_meta["videos"] = {}
+        selected_channel_meta = {**row}
+        selected_channel_meta["videos"] = {}
 
         channel_id = row["id"]
         channel_custom_id = row["custom_url"] # @alias
@@ -145,17 +147,29 @@ def main(
         # channel_refined_ds_segments_meta = []
         for i, (f, snr, speech_prob, acs, video_id) in enumerate(zip(segments_path, segments_snr, speech_probs, acss, segments_video_id)):
             is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
-            # add to channel meta
-            if video_id not in channel_meta["videos"]:
-                channel_meta["videos"][video_id] = []
+            embed_url = f"https://www.youtube.com/embed/{video_id}?start={math.floor(segments_meta_vad[i]['start'] / 48000)}&end={math.ceil(segments_meta_vad[i]['end'] / 48000)}"
+            if video_id not in selected_channel_meta["videos"]:
+                all_channel_meta["videos"][video_id] = []
+                selected_channel_meta["videos"][video_id] = []
+
+            all_channel_meta["videos"][video_id].append(
+                {
+                    "idx": os.path.basename(f).replace(".wav", ""),
+                    "url": embed_url,
+                    "selected": is_selected,
+                    "vad": segments_meta_vad[i],
+                    "snr": snr,
+                    "ac": acs,
+                }
+            )
+
             if is_selected:
-                channel_meta["videos"][video_id].append(
+                selected_channel_meta["videos"][video_id].append(
                     {
                         "idx": os.path.basename(f).replace(".wav", ""),
-                        "url": f"https://www.youtube.com/embed/{video_id}?start={math.floor(segments_meta_vad[i]['start'] / 48000)}&end={math.ceil(segments_meta_vad[i]['end'] / 48000)}",
-                        "vad": segments_meta_vad[i],
-                        "snr": snr,
-                        "ac": acs[:3],
+                        "url": embed_url,
+                        "start": segments_meta_vad[i]["start"],
+                        "end": segments_meta_vad[i]["end"],
                     }
                 )
 
@@ -180,7 +194,8 @@ def main(
 
         # add to global list
         # ds_segments_meta.extend(channel_refined_ds_segments_meta)
-        ext_channels_meta[channel_id] = channel_meta
+        selected_channels_meta[channel_id] = selected_channel_meta
+        all_segments_meta[channel_id] = selected_channel_meta
         # clean
         for f in audio_paths:
             os.remove(f)
@@ -189,8 +204,10 @@ def main(
         os.rmdir(download_dir)
 
     # save ext_channels_meta json
-    with open("tmp/_metadata.json", "w", encoding='utf-8') as f:
-        f.write(json.dumps(ext_channels_meta, indent=4, ensure_ascii=False))
+    with open("tmp/metadata_all.json", "w", encoding='utf-8') as f:
+        f.write(json.dumps(all_segments_meta, indent=4, ensure_ascii=False))
+    with open("tmp/metadata_selected.json", "w", encoding='utf-8') as f:
+        f.write(json.dumps(selected_channels_meta, indent=4, ensure_ascii=False))
     # upload to huggingface
     repo_type = "dataset"
     if not repo_exists(repo_id, repo_type=repo_type):
