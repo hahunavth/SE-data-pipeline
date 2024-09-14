@@ -1,12 +1,13 @@
 import json
 import os
 import logging
+import math
 
 import librosa
 import torch
 from tqdm import tqdm
 import pandas as pd
-from huggingface_hub import upload_folder
+from huggingface_hub import upload_folder, repo_exists, create_repo
 
 from audio_ac import classify_audio_batch
 from audio_snr import estimate_snr
@@ -20,12 +21,13 @@ from yt_download import (
 
 # Create a custom logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Create handlers
 c_handler = logging.StreamHandler()
-f_handler = logging.FileHandler('pipeline.log')
-c_handler.setLevel(logging.WARNING)
-f_handler.setLevel(logging.ERROR)
+f_handler = logging.FileHandler('tmp/pipeline.log')
+c_handler.setLevel(logging.WARNING)   # Console handler level is set to INFO
+f_handler.setLevel(logging.ERROR)  # File handler level is set to ERROR
 
 # Create formatters and add it to handlers
 c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -36,6 +38,8 @@ f_handler.setFormatter(f_format)
 # Add handlers to the logger
 logger.addHandler(c_handler)
 logger.addHandler(f_handler)
+
+
 
 
 def main(
@@ -58,6 +62,7 @@ def main(
     verbose=False,
 ):
     if verbose:
+        logger.setLevel(logging.DEBUG)
         c_handler.setLevel(logging.DEBUG)
 
     if isinstance(df_or_path, str):
@@ -66,7 +71,7 @@ def main(
         df = df_or_path
 
     download_dir = "tmp/downloaded"
-    segments_dir = "tmp/vad"
+    segments_dir = "tmp/segments"
 
     ds_segments_meta = [] # huggingface dataset meta (sample level)
     ext_channels_meta = {} # external dataset meta (tree: channel -> video -> segment)
@@ -137,41 +142,44 @@ def main(
         logger.debug(f"AC: {acss}")
 
         # refine
-        channel_refined_ds_segments_meta = []
+        # channel_refined_ds_segments_meta = []
         for i, (f, snr, speech_prob, acs, video_id) in enumerate(zip(segments_path, segments_snr, speech_probs, acss, segments_video_id)):
             is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
             # add to channel meta
             if video_id not in channel_meta["videos"]:
                 channel_meta["videos"][video_id] = []
-            channel_meta["videos"][video_id].append(
-                {
-                    "idx": os.path.basename(f).replace(".wav", ""),
-                    "vad": segments_meta_vad[i],
-                    "snr": snr,
-                    "ac": acs,
-                }
-            )
-            
             if is_selected:
-                channel_refined_ds_segments_meta.append(
+                channel_meta["videos"][video_id].append(
                     {
                         "idx": os.path.basename(f).replace(".wav", ""),
-                        "channel_id": channel_id,
-                        "channel_custom_id": channel_custom_id,
-                        "video_id": video_id,
-                        # "vad": segments_meta_vad[i],
-                        "start": segments_meta_vad[i]["start"],
-                        "end": segments_meta_vad[i]["end"],
-                        # snr
+                        "url": f"https://www.youtube.com/embed/{video_id}?start={math.floor(segments_meta_vad[i]['start'] / 48000)}&end={math.ceil(segments_meta_vad[i]['end'] / 48000)}",
+                        "vad": segments_meta_vad[i],
                         "snr": snr,
-                        # "ac": acs,
-                        "ac_speech_prob": speech_prob,
-                        # TODO: asr
+                        "ac": acs[:3],
                     }
                 )
 
+                # channel_refined_ds_segments_meta.append(
+                #     {
+                #         "idx": os.path.basename(f).replace(".wav", ""),
+                #         "channel_id": channel_id,
+                #         "channel_custom_id": channel_custom_id,
+                #         "video_id": video_id,
+                #         # "vad": segments_meta_vad[i],
+                #         "start": segments_meta_vad[i]["start"],
+                #         "end": segments_meta_vad[i]["end"],
+                #         # snr
+                #         "snr": snr,
+                #         # "ac": acs,
+                #         "ac_speech_prob": speech_prob,
+                #         # TODO: asr
+                #     }
+                # )
+            else:
+                os.remove(f)
+
         # add to global list
-        ds_segments_meta.extend(channel_refined_ds_segments_meta)
+        # ds_segments_meta.extend(channel_refined_ds_segments_meta)
         ext_channels_meta[channel_id] = channel_meta
         # clean
         for f in audio_paths:
@@ -181,14 +189,17 @@ def main(
         os.rmdir(download_dir)
 
     # save ext_channels_meta json
-    with open("tmp/_metadata.json", "w") as f:
-        json.dump(ext_channels_meta, f)
+    with open("tmp/_metadata.json", "w", encoding='utf-8') as f:
+        f.write(json.dumps(ext_channels_meta, indent=4, ensure_ascii=False))
     # upload to huggingface
+    repo_type = "dataset"
+    if not repo_exists(repo_id, repo_type=repo_type):
+        create_repo(repo_id, repo_type=repo_type, private=True)
     upload_folder(
         repo_id=repo_id,
-        repo_type="dataset",
-        path="tmp",
-        path_in_repo=f"{split}",
+        repo_type=repo_type,
+        folder_path="tmp",
+        path_in_repo=split,
     )
 
 if __name__ == "__main__":
