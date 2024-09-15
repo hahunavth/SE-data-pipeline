@@ -1,9 +1,6 @@
 import requests
 import csv
 
-# API Key từ Google Cloud Console
-API_KEY = "AIzaSyAgl_kTHA6jQ1TEVSnBtayJzSYvMiHunq4"
-
 # URL của YouTube Data API v3 để tìm kiếm
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 
