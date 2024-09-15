@@ -1,300 +1,103 @@
-# import json
-# import os
-# import logging
-# import math
+# %%writefile SE-data-pipeline/data_pipeline.py
 
-# import librosa
-# import torch
-# from tqdm import tqdm
-# import pandas as pd
-# from huggingface_hub import upload_folder, repo_exists, create_repo
-
-# from audio_ac import classify_audio_batch
-# from audio_snr import estimate_snr
-# from audio_vad import vad_split
-# from yt_download import (
-#     download_and_cut_n_audio,
-#     get_youtube_playlist_ids,
-#     check_audio_quality_48k,
-#     download_audio,
-# )
-
-# # Create a custom logger
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
-
-# # Create handlers
-# c_handler = logging.StreamHandler()
-# f_handler = logging.FileHandler('tmp/pipeline.log')
-# c_handler.setLevel(logging.WARNING)   # Console handler level is set to INFO
-# f_handler.setLevel(logging.ERROR)  # File handler level is set to ERROR
-
-# # Create formatters and add it to handlers
-# c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-# f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# c_handler.setFormatter(c_format)
-# f_handler.setFormatter(f_format)
-
-# # Add handlers to the logger
-# logger.addHandler(c_handler)
-# logger.addHandler(f_handler)
-
-
-# def main(
-#     df_or_path="tmp/yt_channels.csv",
-#     # n video select startegy
-#     n_per_10ksubs_plus=1,
-#     n_per_20ksubs_plus=2,
-#     n_per_50ksubs_plus=5,
-#     n_per_100ksubs_plus=10,
-#     # vad
-#     min_duration=None,
-#     max_duration=None,
-#     # threshold
-#     min_snr=15,
-#     min_ac_speech_prob=0.9,
-#     # hf
-#     split="train",
-#     repo_id=None,
-#     # log
-#     verbose=False,
-# ):
-#     if verbose:
-#         logger.setLevel(logging.DEBUG)
-#         c_handler.setLevel(logging.DEBUG)
-#         f_handler.setLevel(logging.DEBUG)
-
-#     if isinstance(df_or_path, str):
-#         df = pd.read_csv(df_or_path)
-#     else:
-#         df = df_or_path
-
-#     download_dir = "tmp/downloaded"
-#     segments_dir = "tmp/segments"
-
-#     all_segments_meta = {} # huggingface dataset meta (sample level)
-#     selected_channels_meta = {} # external dataset meta (tree: channel -> video -> segment)
-
-#     for i, row in tqdm(df.iterrows(), total=len(df)):
-#         all_channel_meta = {**row}
-#         all_channel_meta["videos"] = {}
-#         selected_channel_meta = {**row}
-#         selected_channel_meta["videos"] = {}
-
-#         channel_id = row["id"]
-#         channel_custom_id = row["custom_url"] # @alias
-#         channel_url = row["url"]
-#         logger.info(f"Processing channel {channel_id} ({channel_url})")
-#         # print(get_youtube_playlist_ids(url))
-
-#         logger.debug("Getting video ids")
-#         video_ids = get_youtube_playlist_ids(channel_url)
-#         if len(video_ids) < 3:
-#             logger.warning(f"Channel {channel_id} has less than 3 videos")
-#             # skip
-#             # TODO: log
-#             with open("tmp/skipped_channels.txt", "a") as f:
-#                 f.write(f"{channel_id}\n")
-#             continue
-
-#         logger.debug("Downloading audio")
-#         audio_paths = []
-#         for video_id in video_ids[:3]: # download 3 audios
-#             try:
-#                 audio_path = download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir)
-#                 audio_paths.append(audio_path)
-#             except Exception as e:
-#                 logger.error(f"An error occurred: {e}")
-
-#         # vad
-#         logger.debug("VAD")
-#         segments_path = []
-#         segments_meta_vad = []
-#         segments_video_id = []
-#         for audio_path, video_id in zip(audio_paths, video_ids):
-#             try:
-#                 _segments_path, _segments_meta = vad_split(
-#                     audio_path,
-#                     output_dir=segments_dir,
-#                     # min_duration=min_duration,
-#                     # max_duration=max_duration,
-#                 )
-#                 # add video url
-#                 segments_path.extend(_segments_path)
-#                 segments_meta_vad.extend(_segments_meta)
-#                 segments_video_id.extend([video_id] * len(_segments_path))
-#             except Exception as e:
-#                 logger.error(f"An error occurred: {e}")
-
-#         # snr
-#         logger.debug("Estimating SNR")
-#         segments_snr = [estimate_snr(librosa.load(f)[0]) for f in segments_path]
-#         logger.debug(f"SNR: {segments_snr}")
-
-#         # ac
-#         logger.debug("Classifying audio")
-#         acss = classify_audio_batch(segments_path)
-#         torch.cuda.empty_cache()
-#         speech_probs = []
-#         for ac in acss:
-#             for item in ac:
-#                 if item["label"] == "Speech":
-#                     speech_probs.append(item["score"])
-#         logger.debug(f"AC: {acss}")
-
-#         # refine
-#         # channel_refined_ds_segments_meta = []
-#         for i, (f, snr, speech_prob, acs, video_id) in enumerate(zip(segments_path, segments_snr, speech_probs, acss, segments_video_id)):
-#             is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
-#             embed_url = f"https://www.youtube.com/embed/{video_id}?start={math.floor(segments_meta_vad[i]['start'] / 48000)}&end={math.ceil(segments_meta_vad[i]['end'] / 48000)}"
-#             if video_id not in selected_channel_meta["videos"]:
-#                 all_channel_meta["videos"][video_id] = []
-#                 selected_channel_meta["videos"][video_id] = []
-
-#             all_channel_meta["videos"][video_id].append(
-#                 {
-#                     "idx": os.path.basename(f).replace(".wav", ""),
-#                     "url": embed_url,
-#                     "selected": is_selected,
-#                     "vad": segments_meta_vad[i],
-#                     "snr": snr,
-#                     "ac": acs,
-#                 }
-#             )
-
-#             if is_selected:
-#                 selected_channel_meta["videos"][video_id].append(
-#                     {
-#                         "idx": os.path.basename(f).replace(".wav", ""),
-#                         "url": embed_url,
-#                         "start": segments_meta_vad[i]["start"],
-#                         "end": segments_meta_vad[i]["end"],
-#                     }
-#                 )
-
-#                 # channel_refined_ds_segments_meta.append(
-#                 #     {
-#                 #         "idx": os.path.basename(f).replace(".wav", ""),
-#                 #         "channel_id": channel_id,
-#                 #         "channel_custom_id": channel_custom_id,
-#                 #         "video_id": video_id,
-#                 #         # "vad": segments_meta_vad[i],
-#                 #         "start": segments_meta_vad[i]["start"],
-#                 #         "end": segments_meta_vad[i]["end"],
-#                 #         # snr
-#                 #         "snr": snr,
-#                 #         # "ac": acs,
-#                 #         "ac_speech_prob": speech_prob,
-#                 #         # TODO: asr
-#                 #     }
-#                 # )
-#             else:
-#                 os.remove(f)
-
-#         # add to global list
-#         # ds_segments_meta.extend(channel_refined_ds_segments_meta)
-#         all_segments_meta[channel_id] = all_channel_meta
-#         selected_channels_meta[channel_id] = selected_channel_meta
-#         # clean
-#         for f in audio_paths:
-#             os.remove(f)
-
-#     if os.path.exists(download_dir):
-#         os.rmdir(download_dir)
-
-#     # save ext_channels_meta json
-#     with open("tmp/metadata_all.json", "w", encoding='utf-8') as f:
-#         f.write(json.dumps(all_segments_meta, indent=4, ensure_ascii=False))
-#     with open("tmp/metadata_selected.json", "w", encoding='utf-8') as f:
-#         f.write(json.dumps(selected_channels_meta, indent=4, ensure_ascii=False))
-#     # upload to huggingface
-#     repo_type = "dataset"
-#     if not repo_exists(repo_id, repo_type=repo_type):
-#         create_repo(repo_id, repo_type=repo_type, private=True)
-#     upload_folder(
-#         repo_id=repo_id,
-#         repo_type=repo_type,
-#         folder_path="tmp",
-#         path_in_repo=split,
-#     )
-#     os.rmdir("tmp")
-
-# if __name__ == "__main__":
-#     from fire import Fire
-#     Fire(main)
-
-
-# ========================================================================================================
-# TRY MULTIPROCESSING
+import multiprocessing
+from multiprocessing import Manager
+import logging
 import json
 import os
-import logging
-import math
-import librosa
 import torch
+import librosa
+import math
 from tqdm import tqdm
+import numpy as np
 import pandas as pd
-from huggingface_hub import upload_folder, repo_exists, create_repo, hf_hub_download
-from multiprocessing import Pool
-import multiprocessing
-
+from huggingface_hub import upload_folder, repo_exists, create_repo
 from audio_ac import classify_audio_batch
 from audio_snr import estimate_snr
 from audio_vad import vad_split
 from yt_download import download_audio, get_youtube_playlist_ids
 
-# Create a custom logger
+# Global variables for directories
+download_dir = "tmp/downloaded"
+segments_dir = "tmp/segments"
+
+# Setup logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Create handlers
+# Create handlers for logging
 c_handler = logging.StreamHandler()
 f_handler = logging.FileHandler('tmp/pipeline.log')
-c_handler.setLevel(logging.WARNING)
-f_handler.setLevel(logging.ERROR)
 
-# Create formatters and add it to handlers
+# Set log levels
+c_handler.setLevel(logging.WARNING)
+f_handler.setLevel(logging.INFO)
+
+# Create formatters and add to handlers
 c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 c_handler.setFormatter(c_format)
 f_handler.setFormatter(f_format)
 
-# Add handlers to the logger
+# Add handlers to logger
 logger.addHandler(c_handler)
 logger.addHandler(f_handler)
+# Function to handle logging in subprocesses
+def log_listener(queue):
+    while True:
+        try:
+            # Get the log record from the queue
+            record = queue.get()
+            if record is None:  # Sentinel to stop listener
+                break
+            # Ensure levelno is not None and has a valid value
+            if record.levelno is None:
+                record.levelno = logging.INFO  # Default to INFO if not set
+            # Handle the log record
+            logger.handle(record)
+        except Exception as e:
+            import sys
+            import traceback
+            print(f"Error in log listener: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
-# Global variables for directories
-download_dir = "tmp/downloaded"
-segments_dir = "tmp/segments"
-
-import numpy as np
-
-def convert_numpy(obj):
-    if isinstance(obj, np.generic):
-        return obj.item()  # Convert NumPy scalar to native Python type
-    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-# Function to process each channel
-def process_channel(row, min_snr, min_ac_speech_prob):
+# Function to process each channel (adjusted for safer logging)
+def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
+    n_video_download = 5
+    
     all_channel_meta = {**row}
     all_channel_meta["videos"] = {}
     selected_channel_meta = {**row}
     selected_channel_meta["videos"] = {}
 
     channel_id = row["id"]
-    # channel_custom_id = row["custom_url"]  # @alias
     channel_url = row["url"]
-    logger.info(f"Processing channel {channel_id} ({channel_url})")
+
+    # Log message in the subprocess
+    try:
+        log_queue.put(logging.makeLogRecord({
+            'name': __name__,
+            'level': 'INFO',  # Ensure the level is set correctly
+            'levelno': logging.INFO,
+            'msg': f"Processing channel {channel_id} ({channel_url})"
+        }))
+    except Exception as e:
+        print(f"Error logging: {e}")
 
     try:
         video_ids = get_youtube_playlist_ids(channel_url)
-        if len(video_ids) < 3:
-            logger.warning(f"Channel {channel_id} has less than 3 videos")
+        if len(video_ids) < n_video_download:
+            log_queue.put(logging.makeLogRecord({
+                'name': __name__,
+                'level': 'WARNING',  # Ensure the level is set correctly
+                'levelno': logging.WARNING,
+                'msg': f"Channel {channel_id} has less than {n_video_download} videos"
+            }))
             with open("tmp/skipped_channels.txt", "a") as f:
                 f.write(f"{channel_id}\n")
             return all_channel_meta, selected_channel_meta
 
-        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:3]]
+        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:n_video_download]]
 
         segments_path = []
         segments_meta_vad = []
@@ -336,25 +139,31 @@ def process_channel(row, min_snr, min_ac_speech_prob):
             os.remove(f)
 
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        log_queue.put(logging.makeLogRecord({
+            'name': __name__,
+            'level': 'ERROR',  # Ensure the level is set correctly
+            'levelno': logging.ERROR,
+            'msg': f"An error occurred: {e}"
+        }))
 
     return all_channel_meta, selected_channel_meta
 
+# Function to convert numpy objects to Python native types
+def convert_numpy_to_native(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()  # Convert numpy arrays to lists
+    elif isinstance(obj, (np.int_, np.intc, np.intp, np.int8, np.int16, np.int32, np.int64)):
+        return int(obj)  # Convert numpy integers to native Python int
+    elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+        return float(obj)  # Convert numpy floats to native Python float
+    elif isinstance(obj, np.bool_):
+        return bool(obj)  # Convert numpy booleans to native Python bool
+    elif isinstance(obj, np.void):  # This is a catch-all for other numpy dtypes
+        return None
+    return obj
+
 # Main function
-def main(
-    df_or_path="tmp/yt_channels.csv",
-    n_per_10ksubs_plus=1,
-    n_per_20ksubs_plus=2,
-    n_per_50ksubs_plus=5,
-    n_per_100ksubs_plus=10,
-    min_duration=None,
-    max_duration=None,
-    min_snr=20,
-    min_ac_speech_prob=0.9,
-    split="train",
-    repo_id=None,
-    verbose=False,
-):
+def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, split="train", repo_id=None, verbose=False):
     if verbose:
         logger.setLevel(logging.DEBUG)
         c_handler.setLevel(logging.DEBUG)
@@ -368,33 +177,43 @@ def main(
     all_segments_meta = {}
     selected_channels_meta = {}
 
-    # with Pool() as pool:
-    with multiprocessing.get_context('spawn').Pool() as pool:
-        results = pool.starmap(process_channel, [(row, min_snr, min_ac_speech_prob) for _, row in df.iterrows()])
+    # Create a Manager for shared log queue
+    manager = Manager()
+    log_queue = manager.Queue()
 
+    # Start log listener in a separate process
+    log_listener_process = multiprocessing.Process(target=log_listener, args=(log_queue,))
+    log_listener_process.start()
+
+    # Process the data with multiprocessing Pool
+    with multiprocessing.get_context('spawn').Pool() as pool:
+        results = pool.starmap(process_channel, [(row, min_snr, min_ac_speech_prob, log_queue) for _, row in df.iterrows()])
+
+    # Stop log listener process
+    log_queue.put(None)
+    log_listener_process.join()
+
+    # Save the results
     for all_channel_meta, selected_channel_meta in results:
         channel_id = all_channel_meta["id"]
         all_segments_meta[channel_id] = all_channel_meta
         selected_channels_meta[channel_id] = selected_channel_meta
 
-    if os.path.exists(download_dir):
-        # os.rmdir(download_dir)
-        # rm dir contain files
-        for f in os.listdir(download_dir):
-            os.remove(os.path.join(download_dir, f))
-        os.rmdir(download_dir)
+    # Convert all numpy objects within the data to native Python types
+    all_segments_meta = json.loads(json.dumps(all_segments_meta, default=convert_numpy_to_native))
+    selected_channels_meta = json.loads(json.dumps(selected_channels_meta, default=convert_numpy_to_native))
 
-    # Serialize with custom NumPy conversion
+    # Serialize the results
     with open("tmp/metadata_all.json", "w", encoding='utf-8') as f:
-        f.write(json.dumps(all_segments_meta, indent=4, ensure_ascii=False, default=convert_numpy))
+        f.write(json.dumps(all_segments_meta, indent=4, ensure_ascii=False))
     with open("tmp/metadata_selected.json", "w", encoding='utf-8') as f:
-        f.write(json.dumps(selected_channels_meta, indent=4, ensure_ascii=False, default=convert_numpy))
+        f.write(json.dumps(selected_channels_meta, indent=4, ensure_ascii=False))
+
+    # Upload to Hugging Face
     repo_type = "dataset"
     if not repo_exists(repo_id, repo_type=repo_type):
         create_repo(repo_id, repo_type=repo_type, private=True)
     upload_folder(repo_id=repo_id, repo_type=repo_type, folder_path="tmp", path_in_repo=split)
-
-    # os.rmdir("tmp")
 
 if __name__ == "__main__":
     from fire import Fire
