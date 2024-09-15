@@ -63,8 +63,6 @@ def log_listener(queue):
 
 # Function to process each channel (adjusted for safer logging)
 def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
-    n_video_download = 5
-    
     all_channel_meta = {**row}
     all_channel_meta["videos"] = {}
     selected_channel_meta = {**row}
@@ -72,6 +70,9 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
 
     channel_id = row["id"]
     channel_url = row["url"]
+    channel_n_sub = row["n_subs"]
+
+    n_video_download = min(30, channel_n_sub // 10000 + 1)
 
     # Log message in the subprocess
     try:
@@ -86,7 +87,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
 
     try:
         video_ids = get_youtube_playlist_ids(channel_url)
-        if len(video_ids) < n_video_download:
+        if len(video_ids) < 3:
             log_queue.put(logging.makeLogRecord({
                 'name': __name__,
                 'level': 'WARNING',  # Ensure the level is set correctly
@@ -97,7 +98,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
                 f.write(f"{channel_id}\n")
             return all_channel_meta, selected_channel_meta
 
-        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:n_video_download]]
+        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:max(len(video_ids), n_video_download)]]
 
         segments_path = []
         segments_meta_vad = []
