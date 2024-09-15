@@ -92,13 +92,13 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
                 'name': __name__,
                 'level': 'WARNING',  # Ensure the level is set correctly
                 'levelno': logging.WARNING,
-                'msg': f"Channel {channel_id} has less than {n_video_download} videos"
+                'msg': f"Channel {channel_id} has less than {3} videos"
             }))
             with open("tmp/skipped_channels.txt", "a") as f:
                 f.write(f"{channel_id}\n")
             return all_channel_meta, selected_channel_meta
 
-        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:max(len(video_ids), n_video_download)]]
+        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:min(len(video_ids), n_video_download)]]
 
         segments_path = []
         segments_meta_vad = []
