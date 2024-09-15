@@ -1,7 +1,9 @@
 import json
+import multiprocessing
 import os
+import sys
 
-import librosa  # Ensure this import is here if you're using librosa for loading audio
+import librosa
 import torch
 
 from audio_ac import classify_audio_batch
@@ -22,7 +24,7 @@ def channel_check(args):
         seg_fpaths_lists = [vad_split(fpath, output_dir="./step2")[0] for fpath in audio_paths]
         if verbose:
             print("N segments:", len(seg_fpaths_lists))
-        snrss = [estimate_snr(librosa.load(f)[0]) for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
+        snrss = [estimate_snr(f) for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
 
         # Classify all segments in batches
         flat_fpaths = [f for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
@@ -58,10 +60,6 @@ def channel_check(args):
                 "url": url,
                 "error": str(e).replace("\n", " "),
             }) + "\n")
-
-
-import multiprocessing
-import sys
 
 
 def main(fpath, n_process=2, verbose=False, no_clean_step_1=False, no_clean_step_2=False):
