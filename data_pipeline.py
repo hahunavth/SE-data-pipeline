@@ -109,6 +109,9 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
             segments_meta_vad.extend(_segments_meta)
             segments_video_id.extend([video_id] * len(_segments_path))
 
+            # clean
+            os.remove(audio_path)
+
         segments_snr = [estimate_snr(f) for f in segments_path]
         acss = classify_audio_batch(segments_path)
         torch.cuda.empty_cache()
@@ -136,8 +139,8 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
             else:
                 os.remove(f)
 
-        for f in audio_paths:
-            os.remove(f)
+        # for f in audio_paths:
+        #     os.remove(f)
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
