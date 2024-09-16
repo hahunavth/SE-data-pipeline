@@ -98,7 +98,21 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
                 f.write(f"{channel_id}\n")
             return all_channel_meta, selected_channel_meta
 
-        audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:min(len(video_ids), n_video_download)]]
+        max_video_idx = min(len(video_ids), n_video_download)
+        audio_paths = []
+        for idx, video_id in enumerate(video_ids):
+            try:
+                audio_path = download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir)
+                if audio_path is not None:
+                    audio_paths.append(audio_path)
+            except Exception as e:
+                if "PREMIERE_VIDEO" in str(e):
+                    max_video_idx += 1
+                    continue
+
+            if idx >= max_video_idx:
+                break
+        # audio_paths = [download_audio(f"https://www.youtube.com/watch?v={video_id}", download_dir) for video_id in video_ids[:min(len(video_ids), n_video_download)]]
 
         segments_path = []
         segments_meta_vad = []

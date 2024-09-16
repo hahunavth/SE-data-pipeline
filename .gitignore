@@ -4,5 +4,6 @@ data/
 venv/
 example/
 tmp/
+cache/
 
 yt_channel_list.py

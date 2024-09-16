@@ -96,6 +96,9 @@ def download_audio(video_url, output_dir="./", print_err=True):
     )
 
     if result.returncode != 0:
+        # handle 'ERROR: [youtube] TQkOB9uMtdw: Premieres in 9 hours\n'
+        if "Premieres" in result.stderr:
+            raise Exception("PREMIERE_VIDEO")
         if print_err:
             print(f"Error: {result.stderr}")
         return None
@@ -139,18 +142,25 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
     os.makedirs(os.path.join(output_dir, "step1.1"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "step1.2"), exist_ok=True)
     try:
-        video_ids = get_youtube_playlist_ids(channel_url)[:max_per_chanel]
+        video_ids = get_youtube_playlist_ids(channel_url)
         if not video_ids:
             return []
 
         audio_paths = []
 
-        for video_id in video_ids:
+        max_idx = max_per_chanel
+        for idx, video_id in enumerate(video_ids):
             video_url = f"https://www.youtube.com/watch?v={video_id}"
 
             # if not check_audio_quality_48k(video_url):
             #     raise Exception(f"Audio quality is not 48kHz: {video_url}")
-            audio_path = download_audio(video_url, os.path.join(output_dir, "step1.1"))
+            try:
+                audio_path = download_audio(video_url, os.path.join(output_dir, "step1.1"))
+            except Exception as e:
+                if str(e) == "PREMIERE_VIDEO":
+                    max_idx += 1
+                    continue
+
             if audio_path:
                 audio_path = cut_audio_to_10_minutes(
                     audio_path, os.path.join(output_dir, "step1.2")
@@ -158,6 +168,9 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
                 audio_paths.append(audio_path)
             else:
                 raise Exception(f"Channel {channel_url} has problem downloading audio {video_url}")
+
+            if idx >= max_idx:
+                break
 
         return audio_paths
     except Exception as e:
