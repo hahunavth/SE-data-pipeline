@@ -62,7 +62,7 @@ def wada_snr(wav):
 
 def estimate_snr(wav_or_path):
     if isinstance(wav_or_path, str):
-        wav, _ = librosa(wav_or_path, sr=16000)
+        wav, _ = librosa.load(wav_or_path, sr=16000)
     else:
         wav = wav_or_path
 
