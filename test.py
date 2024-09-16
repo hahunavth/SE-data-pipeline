@@ -19,10 +19,20 @@ def get_video_duration(url):
         return duration
 
 # Example usage
-url = "https://www.youtube.com/watch?v=QEb-9Xy2A70"
-duration = get_video_duration(url)
+url = "https://www.youtube.com/watch?v=68iuJyFMOEA"
 
-if duration is not None:
+def test_get_video_duration():
+    duration = get_video_duration(url)
+    assert duration is not None, "Could not retrieve duration"
     print(f"Duration: {duration} seconds")
-else:
-    print("Could not retrieve duration")
+
+
+def test_check_audio_quality_48k():
+    from yt_download import check_audio_quality_48k
+    for i in range(1000):
+        rs = check_audio_quality_48k(url)
+        print(rs)
+
+if __name__ == "__main__":
+    from fire import Fire
+    Fire()

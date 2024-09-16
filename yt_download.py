@@ -28,14 +28,17 @@ def get_youtube_playlist_ids(channel_url, print_err=True):
 
 
 def check_audio_quality_48k(url, retry_if_error=True):
+    result = subprocess.run(["yt-dlp", "-F", url], capture_output=True, text=True)
+    # if error fetching formats
+    if result.returncode != 0:
+        # print(f"Error fetching formats: {result.stderr}")
+        print("result.stdout")
+        print(result.stdout)
+        print("result.stderr")
+        print(result.stderr)
+        return False
+
     try:
-        result = subprocess.run(["yt-dlp", "-F", url], capture_output=True, text=True)
-
-        # if error fetching formats
-        if result.returncode != 0:
-            # print(f"Error fetching formats: {result.stderr}")
-            return False
-
         output = result.stdout
         is_req_valid = False
         for line in output.splitlines():
@@ -49,7 +52,16 @@ def check_audio_quality_48k(url, retry_if_error=True):
             if retry_if_error:
                 return check_audio_quality_48k(url, retry_if_error=False)
             else:
+                print("result.stdout")
+                print(result.stdout)
+                print("result.stderr")
+                print(result.stderr)
                 return False
+
+        print("result.stdout")
+        print(result.stdout)
+        print("result.stderr")
+        print(result.stderr)
 
         # If no 48kHz audio was found
         return False
@@ -136,14 +148,16 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
         for video_id in video_ids:
             video_url = f"https://www.youtube.com/watch?v={video_id}"
 
-            if not check_audio_quality_48k(video_url):
-                raise Exception(f"Audio quality is not 48kHz: {video_url}")
+            # if not check_audio_quality_48k(video_url):
+            #     raise Exception(f"Audio quality is not 48kHz: {video_url}")
             audio_path = download_audio(video_url, os.path.join(output_dir, "step1.1"))
             if audio_path:
                 audio_path = cut_audio_to_10_minutes(
                     audio_path, os.path.join(output_dir, "step1.2")
                 )
                 audio_paths.append(audio_path)
+            else:
+                raise Exception(f"Channel {channel_url} has problem downloading audio {video_url}")
 
         return audio_paths
     except Exception as e:
