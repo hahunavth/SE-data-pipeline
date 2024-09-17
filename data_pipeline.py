@@ -61,7 +61,7 @@ def log_listener(queue):
             print(f"Error in log listener: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
 
-# Function to process each channel (adjusted for safer logging)
+
 def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
     all_channel_meta = {**row}
     all_channel_meta["videos"] = {}
@@ -72,7 +72,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
     channel_url = row["url"]
     channel_n_sub = row["n_subs"]
 
-    n_video_download = min(30, channel_n_sub // 10000 + 1)
+    n_video_download = min(8, channel_n_sub // 10000 + 1)
 
     # Log message in the subprocess
     try:
@@ -129,7 +129,26 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
         segments_snr = [estimate_snr(f) for f in segments_path]
         acss = classify_audio_batch(segments_path)
         torch.cuda.empty_cache()
-        speech_probs = [item["score"] for ac in acss for item in ac if item["label"] == "Speech"]
+        # speech_probs = [item["score"] for ac in acss for item in ac if item["label"] == "Speech"]
+        speech_probs = []
+        for ac in acss:
+            score = 0
+            for item in ac:
+                if item["label"] == "Narration, monologue":
+                    score += item["score"]
+                if item["label"] == "Female speech, woman speaking":
+                    score += item["score"]
+                if item["label"] =="Male speech, man speaking":
+                    score += item["score"]
+                if item["label"] == "Speech":
+                    score += item["score"]
+                if item["label"] == "Conversation":
+                    score -= item["score"]
+                if item["label"] == "Music":
+                    score -= item["score"]
+                if item["label"] == "Sound effect":
+                    score -= item["score"]
+            speech_probs.append(score)
 
         for i, (f, snr, speech_prob, acs, video_id) in enumerate(zip(segments_path, segments_snr, speech_probs, acss, segments_video_id)):
             is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
