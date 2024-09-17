@@ -72,7 +72,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue):
     channel_url = row["url"]
     channel_n_sub = row["n_subs"]
 
-    n_video_download = min(8, channel_n_sub // 10000 + 1)
+    n_video_download = min(5, channel_n_sub // 10000 + 1)
 
     # Log message in the subprocess
     try:
