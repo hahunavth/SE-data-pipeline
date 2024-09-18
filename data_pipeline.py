@@ -158,26 +158,28 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
                     _skip_premiere_count += 1
                     continue
 
-            if _skip_premiere_count > 5:
-                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 5 premiere videos in the first {max_video_idx} videos")
+            if _skip_premiere_count > 3:
+                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 premiere videos in the first {max_video_idx} videos")
                 # cleanup
                 for f in audio_paths:
                     os.remove(f)
                 return all_channel_meta, None
 
-            if _skip_duration_count > 5:
-                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 5 videos with duration < 3 min in the first {max_video_idx} videos")
+            if _skip_duration_count > 3:
+                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 videos with duration < 3 min in the first {max_video_idx} videos")
                 # cleanup
                 for f in audio_paths:
                     os.remove(f)
                 return all_channel_meta, None
 
             if idx >= max_video_idx:
-                if _continue_for_more_duration_count > 5:
+                if _continue_for_more_duration_count > 3:
                     break
                 if _total_downloaded_duration < _min_download_duration:
                     _continue_for_more_duration_count += 1
                     continue
+                else:
+                    break
 
         segments_path = []
         segments_meta_vad = []
