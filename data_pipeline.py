@@ -593,9 +593,9 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
 
                 _total_downloaded_duration += _download_duration
 
-                if audio_path is not None:
+                if audio_path is None:
                     # channel_audio_paths.append(audio_path)
-                    _log_queue_put(msg=f"SKIP_AUDIO_PATH_NONE {audio_path}")
+                    _log_queue_put(msg="SKIP_AUDIO_PATH_NONE")
                     continue
             except Exception as e:
                 if "PREMIERE_VIDEO" in str(e) or "OFFLINE_VIDEO" in str(e):
