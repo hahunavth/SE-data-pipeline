@@ -6,7 +6,7 @@ import sys
 import librosa
 import torch
 
-from audio_ac import classify_audio_batch
+from audio_ac import ac_infer_batch
 from audio_snr import estimate_snr
 from audio_vad import vad_split
 from yt_download import download_and_cut_n_audio
@@ -28,7 +28,7 @@ def channel_check(args):
 
         # Classify all segments in batches
         flat_fpaths = [f for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
-        acss = classify_audio_batch(flat_fpaths)
+        acss = ac_infer_batch(flat_fpaths)
         torch.cuda.empty_cache() # Clear GPU memory
         if verbose:
             print("AC true:", acss.count(True))
@@ -63,13 +63,13 @@ def channel_check(args):
 
 
 def test_check_audio(video_url="https://www.youtube.com/watch?v=CgPHMBWzgiY"):
-    from yt_download import download_audio
+    from yt_download import yt_download_audio
     output_dir = "./tmp/test_check_audio"
 
     os.makedirs(output_dir, exist_ok=True)
 
     print("Downloading audio")
-    audio_path = download_audio(video_url, os.path.join(output_dir, "step1.1"), print_err=True)
+    audio_path = yt_download_audio(video_url, os.path.join(output_dir, "step1.1"), print_err=True)
     audio_paths = [audio_path]
 
     print("VAD splitting")
@@ -85,7 +85,7 @@ def test_check_audio(video_url="https://www.youtube.com/watch?v=CgPHMBWzgiY"):
 
     print("Classifying audio")
     flat_fpaths = [f for seg_fpaths in seg_fpaths_lists for f in seg_fpaths]
-    acss = classify_audio_batch(flat_fpaths)
+    acss = ac_infer_batch(flat_fpaths)
 
     with open(os.path.join(output_dir, "out.json"), "a") as f:
         f.write(json.dumps({

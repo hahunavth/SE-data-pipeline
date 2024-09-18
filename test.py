@@ -11,7 +11,7 @@
 
 import yt_dlp
 
-def get_video_duration(url):
+def get_video_duration_sec(url):
     ydl_opts = {}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
@@ -22,7 +22,7 @@ def get_video_duration(url):
 url = "https://www.youtube.com/watch?v=68iuJyFMOEA"
 
 def test_get_video_duration():
-    duration = get_video_duration(url)
+    duration = get_video_duration_sec(url)
     assert duration is not None, "Could not retrieve duration"
     print(f"Duration: {duration} seconds")
 

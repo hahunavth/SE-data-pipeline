@@ -67,3 +67,15 @@ def estimate_snr(wav_or_path):
         wav = wav_or_path
 
     return wada_snr(wav)
+
+
+
+if __name__ == "__main__":
+    def test_estimate_snr():
+        wav = np.random.randn(16000)
+        snr = estimate_snr(wav)
+        print(snr)
+
+
+    from fire import Fire
+    Fire()

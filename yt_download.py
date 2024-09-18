@@ -8,9 +8,10 @@ import soundfile as sf
 from pydub import AudioSegment
 from scipy.io.wavfile import write
 from tqdm import tqdm
+import yt_dlp
 
 
-def get_youtube_playlist_ids(channel_url, print_err=True):
+def yt_get_playlist_ids(channel_url, print_err=True):
     try:
         command = ["yt-dlp", "--flat-playlist", "--print", "id", channel_url]
         result = subprocess.run(
@@ -70,7 +71,21 @@ def check_audio_quality_48k(url, retry_if_error=True):
         return False
 
 
-def download_audio(video_url, output_dir="./", print_err=True):
+def yt_get_video_duration_sec(url):
+    ydl_opts = {}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        duration = info.get('duration', None)  # Duration in seconds
+        return duration
+
+
+def yt_download_audio(video_url, output_dir="./", print_err=True, ss=None, to=None):
+    """
+    yt-dlp\
+        -f bestaudio --extract-audio --audio-format wav --audio-quality 0 --postprocessor-args "-ar 48000"\
+        --downloader ffmpeg --downloader-args "-ss 0 -to 600"\
+        -o "output_dir/video_id.%(ext)s" video_url
+    """
     #     try:
     os.makedirs(output_dir, exist_ok=True)
     video_id = video_url.split("v=")[-1]
@@ -87,10 +102,19 @@ def download_audio(video_url, output_dir="./", print_err=True):
         "0",
         "--postprocessor-args",
         "-ar 48000",
+    ]
+    if ss is not None and to is not None:
+        command.extend([
+            "--downloader",
+            "ffmpeg",
+            "--downloader-args",
+            f"-ss {ss} -to {to}"
+        ])
+    command.extend([
         "-o",
         output_template,
         video_url,
-    ]
+    ])
     result = subprocess.run(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
@@ -142,7 +166,7 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
     os.makedirs(os.path.join(output_dir, "step1.1"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "step1.2"), exist_ok=True)
     try:
-        video_ids = get_youtube_playlist_ids(channel_url)
+        video_ids = yt_get_playlist_ids(channel_url)
         if not video_ids:
             return []
 
@@ -155,7 +179,7 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
             # if not check_audio_quality_48k(video_url):
             #     raise Exception(f"Audio quality is not 48kHz: {video_url}")
             try:
-                audio_path = download_audio(video_url, os.path.join(output_dir, "step1.1"))
+                audio_path = yt_download_audio(video_url, os.path.join(output_dir, "step1.1"))
             except Exception as e:
                 if str(e) == "PREMIERE_VIDEO":
                     max_idx += 1
