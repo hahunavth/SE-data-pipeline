@@ -123,6 +123,8 @@ def yt_download_audio(video_url, output_dir="./", print_err=True, ss=None, to=No
         # handle 'ERROR: [youtube] TQkOB9uMtdw: Premieres in 9 hours\n'
         if "Premieres" in result.stderr:
             raise Exception("PREMIERE_VIDEO")
+        if "Offline" in result.stderr: # live stream offline
+            raise Exception("OFFLINE_VIDEO")
         if print_err:
             print(f"Error: {result.stderr}")
         return None

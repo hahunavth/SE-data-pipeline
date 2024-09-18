@@ -179,7 +179,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 if audio_path is not None:
                     audio_paths.append(audio_path)
             except Exception as e:
-                if "PREMIERE_VIDEO" in str(e):
+                if "PREMIERE_VIDEO" in str(e) or "OFFLINE_VIDEO" in str(e):
                     max_video_idx += 1
                     _skip_premiere_count += 1
                     continue
