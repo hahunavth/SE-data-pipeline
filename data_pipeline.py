@@ -98,7 +98,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
     channel_n_videos = row["n_videos"]
     channel_custom_url = row["custom_url"] if "custom_url" in row else None
 
-    n_video_download = min(5, channel_n_sub // 10000 + 2)
+    n_video_download = min(5, channel_n_sub // 10000 + 5)
 
     def _log_queue_put(level=logging.INFO, msg=""):
         try:
