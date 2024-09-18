@@ -225,17 +225,14 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
         #     os.remove(f)
 
         # save meta
+        all_channel_meta = json.loads(json.dumps(all_channel_meta, default=convert_numpy_to_native))
+        selected_channel_meta = json.loads(json.dumps(selected_channel_meta, default=convert_numpy_to_native))
         with open(f"{meta_list_dir}/{channel_id}_all_meta.json", "w", encoding='utf-8') as f:
             f.write(json.dumps(all_channel_meta, indent=4, ensure_ascii=False))
         with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
             f.write(json.dumps(selected_channel_meta, indent=4, ensure_ascii=False))
 
         upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split) # TODO diffrent branch?
-
-        # cleanup
-        # remove all tmp_dir
-        import shutil
-        shutil.rmtree(tmp_dir)
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
@@ -244,6 +241,11 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
             'levelno': logging.ERROR,
             'msg': f"An error occurred: {e}"
         }))
+    finally:
+        # cleanup
+        # remove all tmp_dir
+        import shutil
+        shutil.rmtree(tmp_dir)
 
     return all_channel_meta, selected_channel_meta
 

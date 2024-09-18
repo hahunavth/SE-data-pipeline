@@ -200,3 +200,15 @@ def download_and_cut_n_audio(channel_url, output_dir="./", max_per_chanel=2):
     except Exception as e:
         print(f"An error occurred during processing: {e}")
         raise e # test
+
+
+if __name__ == "__main__":
+    url = "https://www.youtube.com/watch?v=mNB6V1BqIKk"
+    def test_yt_get_video_duration_sec():
+        print(yt_get_video_duration_sec(url))
+
+    def test_yt_download_audio():
+        print(yt_download_audio(url))
+
+    from fire import Fire
+    Fire()
