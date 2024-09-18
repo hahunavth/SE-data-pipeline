@@ -79,7 +79,7 @@ def log_listener(queue):
             traceback.print_exc(file=sys.stderr)
 
 
-def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", channel_min_videos=5):
+def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", branch=None, channel_min_videos=5):
     time.sleep(random.randint(idx, idx * 3))
 
     tmp_dir, download_dir, segments_dir, meta_list_dir = get_process_dirs(row["id"])
@@ -258,7 +258,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
             f.write(json.dumps(selected_channel_meta, indent=4, ensure_ascii=False))
 
-        upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split) # TODO diffrent branch?
+        upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch)
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
@@ -290,7 +290,7 @@ def convert_numpy_to_native(obj):
     return obj
 
 
-def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, split="train", repo_id=None, verbose=False, num_workers=4):
+def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, split="train", branch=None, repo_id=None, verbose=False, num_workers=4):
     if verbose:
         logger.setLevel(logging.DEBUG)
         c_handler.setLevel(logging.DEBUG)
@@ -314,7 +314,7 @@ def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, s
 
     # Process the data with multiprocessing Pool
     with multiprocessing.get_context('spawn').Pool(num_workers) as pool:
-        results = pool.starmap(process_channel, [(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id, split) for idx, row in df.iterrows()])
+        results = pool.starmap(process_channel, [(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id, split, branch) for idx, row in df.iterrows()])
 
     # Stop log listener process
     log_queue.put(None)

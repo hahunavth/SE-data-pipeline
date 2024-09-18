@@ -19,6 +19,7 @@ def channel_check(args):
         print(f"start[{i}]: {url}")
     try:
         audio_paths = download_and_cut_n_audio(url, "./step1", max_per_chanel=max_per_chanel)
+        # TODO: handle case when audio_paths is empty -> retry new url
         if verbose:
             print("N audio paths:", len(audio_paths))
         seg_fpaths_lists = [vad_split(fpath, output_dir="./step2")[0] for fpath in audio_paths]
