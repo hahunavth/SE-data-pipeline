@@ -187,6 +187,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
             os.remove(audio_path)
 
         segments_snr = [estimate_snr(f) for f in segments_path]
+
         acss = classify_audio_batch(segments_path)
         torch.cuda.empty_cache()
         speech_probs = ac_get_speech_probs(acss)
@@ -216,7 +217,18 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
         # for f in audio_paths:
         #     os.remove(f)
 
+        # save meta
+        with open(f"{meta_list_dir}/{channel_id}_all_meta.json", "w", encoding='utf-8') as f:
+            f.write(json.dumps(all_channel_meta, indent=4, ensure_ascii=False))
+        with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
+            f.write(json.dumps(selected_channel_meta, indent=4, ensure_ascii=False))
+
         upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split) # TODO diffrent branch?
+
+        # cleanup
+        # remove all tmp_dir
+        import shutil
+        shutil.rmtree(tmp_dir)
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
