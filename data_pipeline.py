@@ -497,7 +497,7 @@ def log_listener(queue):
             traceback.print_exc(file=sys.stderr)
 
 
-def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", branch=None, channel_min_videos=5):
+def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", branch="main", channel_min_videos=5):
     time.sleep(random.randint(idx, idx * 3))
 
     tmp_dir, download_dir, segments_dir, meta_list_dir = get_process_dirs(row["id"])
@@ -616,6 +616,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             # SNR
             _log_queue_put(msg="SNR")
             segments_snr = [estimate_snr(f) for f in segments_path]
+            segs_total_duration_h = sum([m["end"] - m["start"] for m in segments_meta]) / 16000 / 3600
 
             # AC
             _log_queue_put(msg="AC")
@@ -658,7 +659,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
                     f.write(json.dumps(_selected_channel_meta, indent=4, ensure_ascii=False))
                 # upload hf
-                upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch)
+                upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch, commit_message=f"[{channel_custom_url if channel_custom_url is not None else channel_id}]({v_idx}) upload {segs_total_duration_h}h")
                 # remove all segments_path
                 shutil.rmtree(segments_dir)
 
@@ -689,7 +690,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
                 f.write(json.dumps(_selected_channel_meta, indent=4, ensure_ascii=False))
             # upload hf
-            upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch)
+            upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch, commit_message=f"[{channel_custom_url if channel_custom_url is not None else channel_id}](END) upload {segs_total_duration_h}h")
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
