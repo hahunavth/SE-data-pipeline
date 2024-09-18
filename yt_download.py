@@ -101,7 +101,7 @@ def yt_download_audio(video_url, output_dir="./", print_err=True, ss=None, to=No
         "--audio-quality",
         "0",
         "--postprocessor-args",
-        "-ar 48000",
+        "-ar 48000 -ac 1",
     ]
     if ss is not None and to is not None:
         command.extend([

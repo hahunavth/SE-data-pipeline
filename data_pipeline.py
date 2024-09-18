@@ -33,7 +33,7 @@ def replace_with_cutted_audio(audio_path, ss, to):
 
 def get_process_dirs(idx):
     tmp_dir = f"tmp/{idx}"
-    download_dir = f"tmp/{idx}/downloaded"
+    download_dir = f"tmp/downloaded"
     segments_dir = f"tmp/{idx}/segments"
     meta_list_dir = f"tmp/{idx}/meta_list" # store metadata for each channel in a file
     return tmp_dir, download_dir, segments_dir, meta_list_dir
@@ -79,8 +79,8 @@ def log_listener(queue):
             traceback.print_exc(file=sys.stderr)
 
 
-def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", channel_min_videos=5):
-    time.sleep(random.random() * 5)
+def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", channel_min_videos=5):
+    time.sleep(random.randint(idx, idx * 3))
 
     tmp_dir, download_dir, segments_dir, meta_list_dir = get_process_dirs(row["id"])
     os.makedirs(download_dir, exist_ok=True)
@@ -159,7 +159,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
                 ss, to = None, None
                 audio_path = yt_download_audio(video_url, download_dir, ss=ss, to=to)
                 # get audio duration
-                _download_duration = librosa.get_duration(filename=audio_path)
+                _download_duration = librosa.get_duration(path=audio_path)
 
                 if _download_duration < 180: # 3 min
                     ss, to = None, None
@@ -314,7 +314,7 @@ def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, s
 
     # Process the data with multiprocessing Pool
     with multiprocessing.get_context('spawn').Pool(num_workers) as pool:
-        results = pool.starmap(process_channel, [(row, min_snr, min_ac_speech_prob, log_queue, repo_id, split) for _, row in df.iterrows()])
+        results = pool.starmap(process_channel, [(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id, split) for idx, row in df.iterrows()])
 
     # Stop log listener process
     log_queue.put(None)
