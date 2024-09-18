@@ -605,6 +605,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                     max_video_idx += 1
                     _skip_premiere_count += 1
                     continue
+                raise e
 
             _log_queue_put(msg="VAD")
             os.makedirs(segments_dir, exist_ok=True)
