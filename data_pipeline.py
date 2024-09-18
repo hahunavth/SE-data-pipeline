@@ -1,23 +1,25 @@
-# %%writefile SE-data-pipeline/data_pipeline.py
-
-import multiprocessing
-from multiprocessing import Manager
-import logging
 import json
+import logging
+import math
+import multiprocessing
 import os
 import random
-import torch
+import time
+from multiprocessing import Manager
+
 import librosa
-import math
-from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from huggingface_hub import upload_folder, repo_exists, create_repo
-from audio_ac import ac_infer_batch, ac_get_speech_probs
+import torch
+from tqdm import tqdm
+
+from audio_ac import ac_get_speech_probs, ac_infer_batch
 from audio_snr import estimate_snr
 from audio_vad import vad_split
-from yt_download import yt_download_audio, yt_get_playlist_ids, yt_get_video_duration_sec
 from hf import upload_folder_retry
+from yt_download import (yt_download_audio, yt_get_playlist_ids,
+                         yt_get_video_duration_sec)
+
 
 def get_process_dirs(idx):
     tmp_dir = f"tmp/{idx}"
@@ -68,6 +70,8 @@ def log_listener(queue):
 
 
 def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", channel_min_videos=5):
+    time.sleep(random.random() * 5)
+
     tmp_dir, download_dir, segments_dir, meta_list_dir = get_process_dirs(row["id"])
     os.makedirs(download_dir, exist_ok=True)
     os.makedirs(segments_dir, exist_ok=True)
@@ -111,10 +115,11 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
         print(f"Error logging: {e}")
 
     try:
-        video_ids = yt_get_playlist_ids(channel_url)
-        if len(video_ids) < channel_min_videos:
+        if channel_n_videos < channel_min_videos:
             _log_skip_channel(channel_id, f"Channel {channel_id} has less than {channel_min_videos} videos")
             return all_channel_meta, None
+
+        video_ids = yt_get_playlist_ids(channel_url)
 
         max_video_idx = min(len(video_ids), n_video_download)
         _skip_premiere_count = 0
