@@ -13,7 +13,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from huggingface_hub import upload_folder, repo_exists, create_repo
-from audio_ac import classify_audio_batch, ac_get_speech_probs
+from audio_ac import ac_infer_batch, ac_get_speech_probs
 from audio_snr import estimate_snr
 from audio_vad import vad_split
 from yt_download import yt_download_audio, yt_get_playlist_ids, yt_get_video_duration_sec
@@ -188,7 +188,7 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
 
         segments_snr = [estimate_snr(f) for f in segments_path]
 
-        acss = classify_audio_batch(segments_path)
+        acss = ac_infer_batch(segments_path)
         torch.cuda.empty_cache()
         speech_probs = ac_get_speech_probs(acss)
 
