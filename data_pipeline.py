@@ -530,19 +530,16 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         n_video_download = 60
 
     def _log_queue_put(level=logging.INFO, msg=""):
-        try:
-            log_queue.put(
-                logging.makeLogRecord(
-                    {
-                        "name": channel_custom_url if channel_custom_url is not None else channel_id,
-                        "level": logging._levelToName[level],
-                        "levelno": level,
-                        "msg": msg,
-                    }
-                )
+        log_queue.put(
+            logging.makeLogRecord(
+                {
+                    "name": channel_custom_url if channel_custom_url is not None else channel_id,
+                    "level": logging._levelToName[level],
+                    "levelno": level,
+                    "msg": msg,
+                }
             )
-        except Exception as e:
-            print(f"Error logging: {e}")
+        )
 
     def _log_skip_channel(channel_id, msg):
         _log_queue_put(level=logging.INFO, msg=msg)
