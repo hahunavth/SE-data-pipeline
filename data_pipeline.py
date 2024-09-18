@@ -546,10 +546,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         _log_queue_put(level=logging.INFO, msg=msg)
         with open("tmp/skipped_channels.txt", "a") as f:
             f.write(f"{channel_id}|{msg}\n")
-    try:
-        _log_queue_put(level=logging.INFO, msg=f"Processing channel {channel_id} ({channel_url})")
-    except Exception as e:
-        print(f"Error logging: {e}")
+
+    _log_queue_put(level=logging.INFO, msg=f"Processing channel {channel_id} ({channel_url})")
 
     try:
         if channel_n_videos < channel_min_videos:
@@ -605,6 +603,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                     max_video_idx += 1
                     _skip_premiere_count += 1
                     continue
+                import traceback
+                traceback.print_exc()
                 raise e
 
             _log_queue_put(msg="VAD")
