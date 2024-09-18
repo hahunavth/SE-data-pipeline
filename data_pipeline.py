@@ -444,7 +444,7 @@ def replace_with_cutted_audio(audio_path, ss, to):
         return audio_path
     audio = AudioSegment.from_wav(audio_path)
     cutted_audio = audio[ss * 1000:to * 1000]
-    shutil.rmtree(audio_path)
+    os.remove(audio_path)
     cutted_audio.export(audio_path, format="wav")
     return audio_path
 

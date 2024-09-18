@@ -123,9 +123,10 @@ def yt_download_audio(video_url, output_dir="./", print_err=True, ss=None, to=No
             raise Exception("PREMIERE_VIDEO")
         if "Offline" in result.stderr or "This live event will begin in a few moments" in result.stderr: # live stream offline
             raise Exception("OFFLINE_VIDEO")
-        if print_err:
-            print(f"Error: {result.stderr}")
-        return None
+        # if print_err:
+        #     print(f"Error: {result.stderr}")
+        # return None
+        raise Exception(f"Error: {result.stderr}")
 
     output_file = os.path.join(output_dir, f"{video_id}.wav")
     if not os.path.exists(output_file):
