@@ -131,7 +131,8 @@ def yt_download_audio(video_url, output_dir="./", print_err=True, ss=None, to=No
 
     output_file = os.path.join(output_dir, f"{video_id}.wav")
     if not os.path.exists(output_file):
-        return None
+        raise Exception("NO_OUTPUT_FILE")
+        # return None
 
     return output_file
 
