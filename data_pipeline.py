@@ -498,6 +498,7 @@ def log_listener(queue):
 
 
 def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, split="test", branch="main", channel_min_videos=5):
+
     time.sleep(random.randint(idx, idx * 3))
 
     tmp_dir, download_dir, segments_dir, meta_list_dir = get_process_dirs(row["id"])
@@ -722,6 +723,13 @@ def convert_numpy_to_native(obj):
 
 
 def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, split="train", branch=None, repo_id=None, verbose=False, num_workers=4):
+
+    if branch is None:
+        branch = "main"
+    elif branch != "main":
+        from huggingface_hub import create_branch
+        create_branch(repo_id, branch=branch, revision="224336fadb8572137ad77541e7f6550d1f11f3db", repo_type="dataset", exist_ok=True)
+
     if verbose:
         logger.setLevel(logging.DEBUG)
         c_handler.setLevel(logging.DEBUG)
