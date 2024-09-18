@@ -6,6 +6,7 @@ import os
 import random
 import time
 from multiprocessing import Manager
+import shutil
 
 import librosa
 import numpy as np
@@ -21,6 +22,421 @@ from yt_download import (yt_download_audio, yt_get_playlist_ids,
                          yt_get_video_duration_sec)
 
 from pydub import AudioSegment
+
+
+added_video_ids_set = set([
+    "MVp0-wpyd8o",
+    "gH66YiIUSJg",
+    "Bylj5qWbC-g",
+    "ouubBo_PD_4",
+    "9PPUXwrr3Vk",
+    "PpcSSyYHhfQ",
+    "Vm62VF-tbXo",
+    "fuhTUoXNrcs",
+    "mNB6V1BqIKk",
+    "in-jwdVAzAQ",
+    "Ssjw31blRms",
+    "bLocj277ccg",
+    "I3TWGzoSwVc",
+    "ku5u1frJ5ig",
+    "lnV3ql9vl6M",
+    "YBmd-uj8itY",
+    "af9IbQZgY-s",
+    "0FrMteTWKfY",
+    "SF-nWbwKFCM",
+    "jDNukRpCSe4",
+    "2iEySRrFhek",
+    "dV5bno0Spqo",
+    "SY_QHJMloN4",
+    "CCVvuf8GOsU",
+    "4cOtDHI1EKA",
+    "yixlauWu-X4",
+    "g0uUCJDAnjM",
+    "4e28CZbB3Yw",
+    "0CQ1Y-19Ol8",
+    "26jmaOS-hs8",
+    "Km3ZbHFZZMw",
+    "uv2_LA8LbCQ",
+    "6oMfKjt-DL0",
+    "PTX9u-bRyH4",
+    "sSqhAPw4N2Y",
+    "wkkU1CM4oLA",
+    "mf7fAYYDP3A",
+    "FXeP4HgkG0I",
+    "azwJg2CzTVQ",
+    "ql1BL3n7gJU",
+    "MvREbKZNdFQ",
+    "_8a7QhtzCVA",
+    "j6Zrem7wut0",
+    "7zPPzd_GvT8",
+    "ku_DROqhGI0",
+    "rbyRJSfOH30",
+    "kFYs2iCK_HA",
+    "oO9zmWUlDEg",
+    "k8bhs3zzABs",
+    "5y9AOdMC_kI",
+    "aZX-Hk3IqFU",
+    "fXee9OusLJc",
+    "N-tM2TGWRB4",
+    "c0r9hrhYr7g",
+    "z7u0RhXwXSw",
+    "cD6gLZNEKWM",
+    "bxd0b-lc8Qw",
+    "9gAILwQ-LvY",
+    "pzuUywCyUyg",
+    "IWeflXrQIj0",
+    "0_flsldlBPc",
+    "eb1i3dgDDMg",
+    "3acrNLvMCT8",
+    "AjZRIdCmQXA",
+    "anFyPyn-ygw",
+    "BNfZoky_8Nc",
+    "cDrgRH0aACs",
+    "z42zl9RiGSc",
+    "oFax1_QCXJE",
+    "zvakFEwxJRE",
+    "JWism0YMJpA",
+    "HlUp3XT-0RQ",
+    "8npaugFg-Bk",
+    "hcJxk__aGsc",
+    "YbHyplBi7cA",
+    "n1UNKkfT-x4",
+    "7yrd2ROhtbs",
+    "jXUy87qsIZo",
+    "DULrc0hl604",
+    "IKOkZSUB71I",
+    "fuNIDdCbVmw",
+    "RJN8K5EGlX0",
+    "rsEVv7PIc3Q",
+    "1GRmo62PNOY",
+    "ry15JbtQp2Q",
+    "hg5JMPvvdz4",
+    "kEoKxuAPeNk",
+    "5y42sycWYmI",
+    "p221-6BWdaU",
+    "xW8qJXtWzpk",
+    "540xjBxJsrE",
+    "IJwCJZNVZWI",
+    "266tgHfjopM",
+    "gtyU4sT82hM",
+    "FZXTDWwWQVQ",
+    "pEhXPreMJB0",
+    "qU0TP8nwXGs",
+    "0O1UeyzbNlk",
+    "8qxcF3Zwywc",
+    "EyaKgEYCOzo",
+    "lrxAf7FsYh0",
+    "yRvFFSSBksg",
+    "_EfZbWcgUHM",
+    "0pcs1iiRbwM",
+    "Yx5CzpLb0Xo",
+    "B-9xoZ43RRg",
+    "y7jsgwpgVGI",
+    "H4UPQhx7ANU",
+    "G9NSl60f9mE",
+    "jImLM5XoqYw",
+    "OsaDBqHskKI",
+    "qAN6r21EIF4",
+    "1_jH06pNsR8",
+    "2p85pekNWxo",
+    "DVkibuHM7Gc",
+    "h0ffQUWZfoA",
+    "IQ3l6DJ_Xgw",
+    "zhuqbxOO0Bo",
+    "96RiVBzMZDw",
+    "GdRX-ebJ7pU",
+    "NUGb8aqFD4A",
+    "fddmAap63Pk",
+    "NyP7Kgl9R2w",
+    "L_Wy3Q8ZU_8",
+    "HiyQxKdI5So",
+    "RnWKj55mq4M",
+    "qgCxKXw-igk",
+    "1ggYDp4XSHU",
+    "gdNwOznxaTU",
+    "d-COkwzcknQ",
+    "pf27Wv5WGrg",
+    "r_4T6fZH_t0",
+    "ECn3Stp4eSc",
+    "gRXJnKin6gM",
+    "7c0EvfTPikM",
+    "3eqcnF5Vdnk",
+    "giDW2tPB84U",
+    "HURm2aqLrSc",
+    "j8MatWSQNPU",
+    "ULAM_PzSnWg",
+    "NdLRfH-y_Wc",
+    "MXKd9JV-ELM",
+    "yo53QonPPXA",
+    "JjnPLbKXgQE",
+    "JOZ97Hb-htU",
+    "MkiJKp3B0cc",
+    "-mA8GXioqsA",
+    "GDtorGf09mc",
+    "uSUU8QbCUoc",
+    "j9RKAiebLA8",
+    "GhMyqXpSzAs",
+    "NHjlqkHJZ1Y",
+    "Gcd-2JA2TLg",
+    "REIgAuianYk",
+    "x6j8j16BHKM",
+    "OvQhjDQ9qak",
+    "MiChZPaGfJM",
+    "9yphKX3Vl3k",
+    "0Q_PPgwGS2M",
+    "_RDRa-BP95Y",
+    "fBlBMu9fZQI",
+    "fWKacFMthSQ",
+    "da1mAMF4_IE",
+    "crBxZhS-nBw",
+    "bKNLo0fJN78",
+    "D4DxhWwzfKk",
+    "Hcw_wWAZvuo",
+    "gaUZGMwYDwo",
+    "NLqu6vqZzgg",
+    "5jp25WXMh18",
+    "WfKNeewwBAM",
+    "eaySEGBVfQw",
+    "rwQ_H3m8OR0",
+    "P1BPQCYqtjI",
+    "XQLNiDSdeso",
+    "ndFvsjP6Hrw",
+    "Wggnd6GwAmw",
+    "vRicUXwdW10",
+    "vwYBMbnzFpY",
+    "8rTkhSTqT5Y",
+    "x3DvWsTF50o",
+    "OQhZ-d_I9pk",
+    "09d-BXwQ-f8",
+    "OKxlrI-bFHs",
+    "oHvxdK9Eym8",
+    "2Ukd7x44CjM",
+    "nBdET-Sd7pI",
+    "l3I4X6yzCVg",
+    "uHOfNlhnDwg",
+    "DvVffrx3nDQ",
+    "IfcqvRuVLZc",
+    "s_FrwcfXxYA",
+    "JcKDU9AG5Io",
+    "0dOjjIqsB0A",
+    "s8VLLkqTe7M",
+    "tMxh5OZuhzQ",
+    "fXX6gFwq3tk",
+    "ap9qy1p2clQ",
+    "0_gai2buQeA",
+    "t2U_27pEzRI",
+    "3AxD76TBZQY",
+    "Z0VsO3FRTNQ",
+    "IS3QLF79Ek4",
+    "CkQbt_MPipA",
+    "WljSbNHDgNw",
+    "i3-yVolKFio",
+    "4IpVZI-sMoc",
+    "mCTj0Gz4Hc8",
+    "-bZN3o6sHwY",
+    "pnncnSqDCPo",
+    "zec9E-wJvhk",
+    "SI-pAof_6vg",
+    "0IO6bY2woMw",
+    "rf68Q5VP26I",
+    "ag30J8yq0iE",
+    "HN8zBrpV1Pc",
+    "u09BoXfa0Wk",
+    "iQsj6YfZZk4",
+    "uhDLzb7rL1k",
+    "4Iitbt-6M68",
+    "kxm_OQFmsFc",
+    "fbIlIwyedjk",
+    "0sYeaYFikps",
+    "Sr9Nheg4CGw",
+    "vaHtJNue5PI",
+    "v7KcBUdcayM",
+    "M6yWmTPyk9I",
+    "J9i6mZHLx2I",
+    "PHyT7mcPBfk",
+    "SsgDFfzyOW0",
+    "gvzmBZJkiHE",
+    "76EnmaHRkUo",
+    "1g1SNchgfFs",
+    "l-PqqHVc9H8",
+    "E3IiWG8NFpQ",
+    "zXUwa5CARnI",
+    "3zD4pWvMke4",
+    "GSO9-RSUw1g",
+    "NVM6tV3RbFE",
+    "F-0GQlUSfmA",
+    "3sEP_UezPUo",
+    "zyCg-zzY3lQ",
+    "pfX-DbRMqRA",
+    "NF7pTIHof5k",
+    "eGFg0AqvegI",
+    "JbtzXh8U9EA",
+    "6lOLrU6oJyc",
+    "pwrkodQZUSM",
+    "xsnrd4U5Ryk",
+    "NgqbkTrkeBI",
+    "G5yTJA8djDY",
+    "1y4q8oVvmPM",
+    "KM7r_h0gNeI",
+    "FqzIQhOZ_N4",
+    "SSeNDpRxj9M",
+    "UN60UNK2iiQ",
+    "VLZoxZHPmKA",
+    "hG7A_yLb7no",
+    "g0QHLerAxg0",
+    "Ab8x2w9LXKM",
+    "2L0EniSXNiE",
+    "u6dUNEZ4xK8",
+    "PrYR94c7IXc",
+    "Y3AaMoNie2k",
+    "TVxN2Gb6lEc",
+    "rsmwLE-QvUY",
+    "ZPPl8LZdmI4",
+    "ml8ZLniGX_o",
+    "qtm0Hm8jttQ",
+    "lFdn6vzUuS0",
+    "qH1Ck7jzDsA",
+    "rIzjczL__jQ",
+    "XTuNEa68LXQ",
+    "_7gGoCpBRUg",
+    "aREKS4UZyGM",
+    "QFaNk-Uz6rc",
+    "8n0bJF2Zxrc",
+    "d6cbEVpoZyg",
+    "-X6wkgLYt30",
+    "I0GHxT-XGEQ",
+    "BRfptCRHWXc",
+    "umPmyMJikdw",
+    "HaVYwD02aU8",
+    "PFkVfB5t4Lk",
+    "rfjFXhAJlTg",
+    "BfSivwI9rkE",
+    "p2TgxdBQpi4",
+    "w10zGmXvxOc",
+    "D0CAy4rxVMM",
+    "dlwg3WjQko4",
+    "dV71HKIC4Dg",
+    "6JWE9Ncmcwg",
+    "TXldLPEOhCk",
+    "WjzSTv_-Z4I",
+    "AhJkaE63cU8",
+    "CgDpNyxHtfY",
+    "acojgwTHL70",
+    "-O2xwYwYfR8",
+    "Afrm6DIcTMU",
+    "i6ZUSLovgp4",
+    "GW6EbHdo-uY",
+    "V1Xl0rrA52U",
+    "nhWlc4U7vK0",
+    "BlMRFfedWz4",
+    "vQVFCEZ7iBg",
+    "hvrWPTaHXv8",
+    "A1EqZLBnYCY",
+    "NRTJun00AiY",
+    "jqyCH5bV74Y",
+    "f-HsFW86SWk",
+    "pm1rkfRovRo",
+    "OtYCQ1Z214c",
+    "Tv8XkaFIl_8",
+    "5epmRpg7AUY",
+    "Jy-Y5n8k-g8",
+    "tEeEWCOMo1E",
+    "lZRgtppUr50",
+    "qH-9XIJBpaY",
+    "fgljFZZ2xes",
+    "nMy17eB2Zfc",
+    "CDDpkD9M7-s",
+    "DzKn1vEBq_s",
+    "zG1-GGD6eDE",
+    "r5LSV6NRQv0",
+    "DSZKM1_yTgg",
+    "QVSqDa4hqbc",
+    "UAO4oJvb5JE",
+    "1cm-eudw0eA",
+    "xjU0FWdAhcE",
+    "Tk7EuxnmSpk",
+    "FxwawNrcwr4",
+    "glj7JXUyLZU",
+    "XnQga7gr5yQ",
+    "GGcwCrBWA7M",
+    "LSNYaaVsO0o",
+    "zLTEGuorXTE",
+    "gKfpjtndqZc",
+    "9PPUXwrr3Vk",
+    "PpcSSyYHhfQ",
+    "Vm62VF-tbXo",
+    "fuhTUoXNrcs",
+    "mNB6V1BqIKk",
+    "in-jwdVAzAQ",
+    "Z1NZwePLz9s",
+    "w0z09gSpaLY",
+    "zF0uq-ggdSw",
+    "1xNOFJVzP80",
+    "_fwqmu9FKnU",
+    "_CU2-YVufr4",
+    "6DRdwO2fgwM",
+    "XRMz1T9GSjs",
+    "yn3K1OuOwCk",
+    "IPOz78HO8no",
+    "vMFi9i9H_Q0",
+    "jD6nGv9QV9I",
+    "8PqNRUl6uSs",
+    "twRwVcWsdAg",
+    "BGlE5byLxPA",
+    "IMHVOEg7BB8",
+    "RZL_Ch6GUM8",
+    "DfvS2PIdGkQ",
+    "EuKTz-mRzZo",
+    "hFu2qlxc-CA",
+    "oEsvrrcWbnA",
+    "omTihLzD91k",
+    "Mv4u7MYqJlA",
+    "k3Gt6Icve8I",
+    "aK_bxOQh4aw",
+    "jJCk2rcz6AU",
+    "E61Z8K-uKzM",
+    "4SNObGN8--8",
+    "GuM_jlSaBYM",
+    "tvezpkpy1bM",
+    "7Mk_yTfq9Zc",
+    "mub_XmWwAvk",
+    "XtBTC5mVoIU",
+    "Q9RIx1pix3M",
+    "kARJECeILgU",
+    "oomoWM-awyM",
+    "tGMv26OgxLM",
+    "jXUfdgGskMo",
+    "Ngp4IdO2jm4",
+    "Br4roY5EC6U",
+    "FiegNlMpJAo",
+    "Jh3c9O3N9gg",
+    "b4oVrZVk_TE",
+    "g1nA9-Pawn0",
+    "gn43J-KEhSU",
+    "RSAbUNd545c",
+    "0vosxhxS5-Y",
+    "iq21qB3Rcp8",
+    "y-1oaUvoQOU",
+    "mD8lhWkJh3w",
+    "iHpTf-ni_lc",
+    "w24FvAZWEjU",
+    "skUqkxVH6hM",
+    "VPNW9MwtC9w",
+    "yhjlmAMBo6Q",
+    "HiWnbFZqHVY",
+    "ikzc0VjSLoc",
+    "nR1-bWDWGxA",
+    "fri26Bu1nS4",
+    "nJkOaUut0ZM",
+    "dylqVVJtNbI",
+    "dDHTjr6oOJU",
+    "GCh94akcjjA",
+    "4w6h-SRgs1g",
+    "LSkYppcH1Yg",
+    "m3NYSNsC48Q",
+    "oQyWdsqTCdc",
+    "wsm6iCHgM4c",
+])
 
 
 def replace_with_cutted_audio(audio_path, ss, to):
@@ -99,17 +515,17 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
     channel_custom_url = row["custom_url"] if "custom_url" in row else None
 
     if channel_n_sub < 10000:
-        n_video_download = 1
-    elif channel_n_sub < 30000:
-        n_video_download = 2
-    elif channel_n_sub < 50000:
-        n_video_download = 3
-    elif channel_n_sub < 100000:
         n_video_download = 5
-    elif channel_n_sub < 200000:
+    elif channel_n_sub < 30000:
         n_video_download = 10
+    elif channel_n_sub < 50000:
+        n_video_download = 25
+    elif channel_n_sub < 100000:
+        n_video_download = 40
+    elif channel_n_sub < 200000:
+        n_video_download = 50
     else:
-        n_video_download = 15
+        n_video_download = 60
 
     def _log_queue_put(level=logging.INFO, msg=""):
         try:
@@ -142,34 +558,26 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
 
         video_ids = yt_get_playlist_ids(channel_url)
 
-        max_video_idx = min(len(video_ids), n_video_download)
+        n_ignore = len(added_video_ids_set.intersection(video_ids))
+
+        max_video_idx = min(len(video_ids), n_video_download) - n_ignore
         _skip_premiere_count = 0
         _skip_duration_count = 0
         _continue_for_more_duration_count = 0
         _total_downloaded_duration = 0
-        _min_download_duration = max_video_idx * 180 # 3 min * max_video_idx
+
+        _min_download_duration = (max_video_idx - n_ignore) * 180 # 3 min * max_video_idx
         # _max_download_duration = max_video_idx * 1800 # 30 min * max_video_idx
-        audio_paths = []
-        for idx, video_id in enumerate(video_ids):
+        _uploaded = False
+        for v_idx, video_id in enumerate(video_ids):
+            if video_id in added_video_ids_set:
+                continue
+            _uploaded = False
             try:
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
-                # video_duration = yt_get_video_duration_sec(video_url)
-                # if video_duration < 180: # 3 min
-                #     _log_queue_put(level=logging.WARNING, msg=f"Video {video_id} has duration > 3 min, skip")
-                #     _skip_duration_count += 1
-                #     continue
-                # if video_duration > 1800 + 240 + 2: # 30 min + 4 min + 2 sec -> download random 30 min
-                #     _download_duration = 1800
-                #     min_ss, max_to = 120, video_duration - 120
-                #     ss = random.randint(min_ss, max_to - _download_duration)
-                #     to = ss + _download_duration
-                # else:
-                #     # download full - 1 min in the beginning and 1 min in the end
-                #     ss, to = 60, video_duration - 60
-                #     _download_duration = to - ss
+
                 ss, to = None, None
                 audio_path = yt_download_audio(video_url, download_dir, ss=ss, to=to)
-                # get audio duration
                 _download_duration = librosa.get_duration(path=audio_path)
 
                 if _download_duration < 180: # 3 min
@@ -188,25 +596,72 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 _total_downloaded_duration += _download_duration
 
                 if audio_path is not None:
-                    audio_paths.append(audio_path)
+                    # channel_audio_paths.append(audio_path)
+                    continue
             except Exception as e:
                 if "PREMIERE_VIDEO" in str(e) or "OFFLINE_VIDEO" in str(e):
                     max_video_idx += 1
                     _skip_premiere_count += 1
                     continue
 
+            os.makedirs(segments_dir, exist_ok=True)
+            segments_path, segments_meta = vad_split(audio_path, output_dir=segments_dir)
+
+            # clean audio_path
+            os.remove(audio_path)
+
+            # SNR
+            segments_snr = [estimate_snr(f) for f in segments_path]
+
+            # AC
+            acss = ac_infer_batch(segments_path)
+            torch.cuda.empty_cache()
+            speech_probs = ac_get_speech_probs(acss)
+
+            # Add to all_channel_meta and selected_channel_meta
+            for seg_idx, (f, vad_meta, snr, speech_prob, acs) in enumerate(zip(segments_path, segments_meta, segments_snr, speech_probs, acss)):
+                is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
+                embed_url = f"https://www.youtube.com/embed/{video_id}?start={math.floor(vad_meta['start'] / 16000)}&end={math.ceil(vad_meta['end'] / 16000)}"
+                all_channel_meta["videos"].setdefault(video_id, []).append({
+                    "idx": os.path.basename(f).replace(".wav", ""),
+                    "url": embed_url,
+                    "selected": is_selected,
+                    "vad": vad_meta,
+                    "snr": snr,
+                    "ac": acs,
+                })
+
+                if is_selected:
+                    selected_channel_meta["videos"].setdefault(video_id, []).append({
+                        "idx": os.path.basename(f).replace(".wav", ""),
+                        "url": embed_url,
+                        "start": vad_meta["start"],
+                        "end": vad_meta["end"],
+                    })
+                else:
+                    os.remove(f)
+
+            if (v_idx != 0 and v_idx % 10 == 0):
+                _uploaded = True
+                # save meta
+                _all_channel_meta = json.loads(json.dumps(all_channel_meta, default=convert_numpy_to_native))
+                _selected_channel_meta = json.loads(json.dumps(selected_channel_meta, default=convert_numpy_to_native))
+                with open(f"{meta_list_dir}/{channel_id}_all_meta.json", "w", encoding='utf-8') as f:
+                    f.write(json.dumps(_all_channel_meta, indent=4, ensure_ascii=False))
+                with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
+                    f.write(json.dumps(_selected_channel_meta, indent=4, ensure_ascii=False))
+                # upload hf
+                upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch)
+                # remove all segments_path
+                shutil.rmtree(segments_dir)
+
+            # END VIDEO LOOP
             if _skip_premiere_count > 3:
                 _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 premiere videos in the first {max_video_idx} videos")
-                # cleanup
-                for f in audio_paths:
-                    os.remove(f)
                 return all_channel_meta, None
 
             if _skip_duration_count > 3:
                 _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 videos with duration < 3 min in the first {max_video_idx} videos")
-                # cleanup
-                for f in audio_paths:
-                    os.remove(f)
                 return all_channel_meta, None
 
             if idx >= max_video_idx:
@@ -218,58 +673,16 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 else:
                     break
 
-        segments_path = []
-        segments_meta_vad = []
-        segments_video_id = []
-        for audio_path, video_id in zip(audio_paths, video_ids):
-            _segments_path, _segments_meta = vad_split(audio_path, output_dir=segments_dir)
-            segments_path.extend(_segments_path)
-            segments_meta_vad.extend(_segments_meta)
-            segments_video_id.extend([video_id] * len(_segments_path))
-
-            # clean
-            os.remove(audio_path)
-
-        segments_snr = [estimate_snr(f) for f in segments_path]
-
-        acss = ac_infer_batch(segments_path)
-        torch.cuda.empty_cache()
-        speech_probs = ac_get_speech_probs(acss)
-
-        for i, (f, snr, speech_prob, acs, video_id) in enumerate(zip(segments_path, segments_snr, speech_probs, acss, segments_video_id)):
-            is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
-            embed_url = f"https://www.youtube.com/embed/{video_id}?start={math.floor(segments_meta_vad[i]['start'] / 48000)}&end={math.ceil(segments_meta_vad[i]['end'] / 48000)}"
-            all_channel_meta["videos"].setdefault(video_id, []).append({
-                "idx": os.path.basename(f).replace(".wav", ""),
-                "url": embed_url,
-                "selected": is_selected,
-                "vad": segments_meta_vad[i],
-                "snr": snr,
-                "ac": acs,
-            })
-
-            if is_selected:
-                selected_channel_meta["videos"].setdefault(video_id, []).append({
-                    "idx": os.path.basename(f).replace(".wav", ""),
-                    "url": embed_url,
-                    "start": segments_meta_vad[i]["start"],
-                    "end": segments_meta_vad[i]["end"],
-                })
-            else:
-                os.remove(f)
-
-        # for f in audio_paths:
-        #     os.remove(f)
-
-        # save meta
-        all_channel_meta = json.loads(json.dumps(all_channel_meta, default=convert_numpy_to_native))
-        selected_channel_meta = json.loads(json.dumps(selected_channel_meta, default=convert_numpy_to_native))
-        with open(f"{meta_list_dir}/{channel_id}_all_meta.json", "w", encoding='utf-8') as f:
-            f.write(json.dumps(all_channel_meta, indent=4, ensure_ascii=False))
-        with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
-            f.write(json.dumps(selected_channel_meta, indent=4, ensure_ascii=False))
-
-        upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch)
+        if not _uploaded:
+            # save meta
+            _all_channel_meta = json.loads(json.dumps(all_channel_meta, default=convert_numpy_to_native))
+            _selected_channel_meta = json.loads(json.dumps(selected_channel_meta, default=convert_numpy_to_native))
+            with open(f"{meta_list_dir}/{channel_id}_all_meta.json", "w", encoding='utf-8') as f:
+                f.write(json.dumps(_all_channel_meta, indent=4, ensure_ascii=False))
+            with open(f"{meta_list_dir}/{channel_id}_selected_meta.json", "w", encoding='utf-8') as f:
+                f.write(json.dumps(_selected_channel_meta, indent=4, ensure_ascii=False))
+            # upload hf
+            upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch)
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
@@ -281,7 +694,6 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
     finally:
         # cleanup
         # remove all tmp_dir
-        import shutil
         shutil.rmtree(tmp_dir)
 
     return all_channel_meta, selected_channel_meta
