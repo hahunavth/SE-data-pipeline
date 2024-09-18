@@ -59,7 +59,6 @@ def ac_get_speech_probs(predictions):
     for pred in predictions:
         score = 0
         for item in pred:
-            print(item)
             # Positive score
             if (
                 item["label"] == "Narration, monologue"
