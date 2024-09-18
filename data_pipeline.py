@@ -543,7 +543,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             print(f"Error logging: {e}")
 
     def _log_skip_channel(channel_id, msg):
-        _log_queue_put(level=logging.WARNING, msg=msg)
+        _log_queue_put(level=logging.INFO, msg=msg)
         with open("tmp/skipped_channels.txt", "a") as f:
             f.write(f"{channel_id}|{msg}\n")
     try:
@@ -576,6 +576,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             try:
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
 
+                _log_queue_put(level=logging.INFO, msg=f"Downloading video {video_url}")
                 ss, to = None, None
                 audio_path = yt_download_audio(video_url, download_dir, ss=ss, to=to)
                 _download_duration = librosa.get_duration(path=audio_path)
@@ -604,6 +605,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                     _skip_premiere_count += 1
                     continue
 
+            _log_queue_put(msg="VAD")
             os.makedirs(segments_dir, exist_ok=True)
             segments_path, segments_meta = vad_split(audio_path, output_dir=segments_dir)
 
@@ -611,13 +613,16 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             os.remove(audio_path)
 
             # SNR
+            _log_queue_put(msg="SNR")
             segments_snr = [estimate_snr(f) for f in segments_path]
 
             # AC
+            _log_queue_put(msg="AC")
             acss = ac_infer_batch(segments_path)
             torch.cuda.empty_cache()
             speech_probs = ac_get_speech_probs(acss)
 
+            _log_queue_put(msg="META")
             # Add to all_channel_meta and selected_channel_meta
             for seg_idx, (f, vad_meta, snr, speech_prob, acs) in enumerate(zip(segments_path, segments_meta, segments_snr, speech_probs, acss)):
                 is_selected = snr >= min_snr and speech_prob >= min_ac_speech_prob
@@ -642,6 +647,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                     os.remove(f)
 
             if (v_idx != 0 and v_idx % 10 == 0):
+                _log_queue_put(msg="PUSH_TO_HUB")
                 _uploaded = True
                 # save meta
                 _all_channel_meta = json.loads(json.dumps(all_channel_meta, default=convert_numpy_to_native))
@@ -688,7 +694,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         log_queue.put(logging.makeLogRecord({
             'name': __name__,
             'level': 'ERROR',  # Ensure the level is set correctly
-            'levelno': logging.ERROR,
+            'levelno': logging.INFO,
             'msg': f"An error occurred: {e}"
         }))
     finally:
