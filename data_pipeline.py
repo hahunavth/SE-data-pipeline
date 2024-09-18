@@ -20,6 +20,16 @@ from hf import upload_folder_retry
 from yt_download import (yt_download_audio, yt_get_playlist_ids,
                          yt_get_video_duration_sec)
 
+from pydub import AudioSegment
+
+
+def replace_with_cutted_audio(audio_path, ss, to):
+    audio = AudioSegment.from_wav(audio_path)
+    cutted_audio = audio[ss * 1000:to * 1000]
+    os.remove(audio_path)
+    cutted_audio.export(audio_path, format="wav")
+    return audio_path
+
 
 def get_process_dirs(idx):
     tmp_dir = f"tmp/{idx}"
@@ -132,22 +142,38 @@ def process_channel(row, min_snr, min_ac_speech_prob, log_queue, repo_id=None, s
         for idx, video_id in enumerate(video_ids):
             try:
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
-                video_duration = yt_get_video_duration_sec(video_url)
-                if video_duration < 180: # 3 min
-                    _log_queue_put(level=logging.WARNING, msg=f"Video {video_id} has duration > 3 min, skip")
-                    _skip_duration_count += 1
-                    continue
-                if video_duration > 1800 + 240 + 2: # 30 min + 4 min + 2 sec -> download random 30 min
-                    _download_duration = 1800
-                    min_ss, max_to = 120, video_duration - 120
-                    ss = random.randint(min_ss, max_to - _download_duration)
-                    to = ss + _download_duration
+                # video_duration = yt_get_video_duration_sec(video_url)
+                # if video_duration < 180: # 3 min
+                #     _log_queue_put(level=logging.WARNING, msg=f"Video {video_id} has duration > 3 min, skip")
+                #     _skip_duration_count += 1
+                #     continue
+                # if video_duration > 1800 + 240 + 2: # 30 min + 4 min + 2 sec -> download random 30 min
+                #     _download_duration = 1800
+                #     min_ss, max_to = 120, video_duration - 120
+                #     ss = random.randint(min_ss, max_to - _download_duration)
+                #     to = ss + _download_duration
+                # else:
+                #     # download full - 1 min in the beginning and 1 min in the end
+                #     ss, to = 60, video_duration - 60
+                #     _download_duration = to - ss
+                ss, to = None, None
+                audio_path = yt_download_audio(video_url, download_dir, ss=ss, to=to)
+                # get audio duration
+                _download_duration = librosa.get_duration(filename=audio_path)
+
+                if _download_duration < 180: # 3 min
+                    ss, to = None, None
+                    pass
+                elif _download_duration > 1800 + 240 + 2: # 30 min + 4 min + 2 sec -> download random 30 min
+                    # cut this video to 
+                    ss, to = 120, _download_duration - 120
+                    _download_duration = to - ss
                 else:
                     # download full - 1 min in the beginning and 1 min in the end
-                    ss, to = 60, video_duration - 60
+                    ss, to = 60, _download_duration - 60
                     _download_duration = to - ss
+                replace_with_cutted_audio(audio_path, ss, to)
 
-                audio_path = yt_download_audio(video_url, download_dir, ss=ss, to=to)
                 _total_downloaded_duration += _download_duration
 
                 if audio_path is not None:
