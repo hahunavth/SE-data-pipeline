@@ -440,6 +440,8 @@ added_video_ids_set = set([
 
 
 def replace_with_cutted_audio(audio_path, ss, to):
+    if ss is None and to is None:
+        return audio_path
     audio = AudioSegment.from_wav(audio_path)
     cutted_audio = audio[ss * 1000:to * 1000]
     os.remove(audio_path)
@@ -577,7 +579,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 _log_queue_put(level=logging.INFO, msg=f"Downloading video {video_url}")
                 ss, to = None, None
                 audio_path = yt_download_audio(video_url, download_dir, ss=ss, to=to)
-                _download_duration = librosa.get_duration(path=audio_path)
+                _download_duration = math.floor(librosa.get_duration(path=audio_path))
 
                 if _download_duration < 180: # 3 min
                     ss, to = None, None
