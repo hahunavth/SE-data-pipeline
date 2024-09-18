@@ -262,7 +262,7 @@ def convert_numpy_to_native(obj):
     return obj
 
 
-def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, split="train", repo_id=None, verbose=False):
+def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, split="train", repo_id=None, verbose=False, num_workers=4):
     if verbose:
         logger.setLevel(logging.DEBUG)
         c_handler.setLevel(logging.DEBUG)
@@ -285,7 +285,7 @@ def main(df_or_path="tmp/yt_channels.csv", min_snr=20, min_ac_speech_prob=0.9, s
     log_listener_process.start()
 
     # Process the data with multiprocessing Pool
-    with multiprocessing.get_context('spawn').Pool() as pool:
+    with multiprocessing.get_context('spawn').Pool(num_workers) as pool:
         results = pool.starmap(process_channel, [(row, min_snr, min_ac_speech_prob, log_queue, repo_id, split) for _, row in df.iterrows()])
 
     # Stop log listener process
