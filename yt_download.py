@@ -105,8 +105,6 @@ def yt_download_audio(video_url, output_dir="./", print_err=True, ss=None, to=No
     ]
     if ss is not None and to is not None:
         command.extend([
-            # "--downloader",
-            # "ffmpeg",
             "--external-downloader-args",
             f'ffmpeg:"-ss {ss} -to {to}"'
         ])
