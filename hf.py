@@ -33,7 +33,7 @@ def create_repo_if_not_exists(repo_id, repo_type="dataset", **kwargs):
     )
 
 
-@hf_retry_decorator(time_between_retries=10)
+@hf_retry_decorator(max_retries=10, time_between_retries=60)
 def upload_folder_retry(
     repo_id, repo_type, folder_path, path_in_repo, revision="main", commit_message="", **kwargs
 ):
