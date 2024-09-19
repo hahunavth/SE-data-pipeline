@@ -654,7 +654,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 else:
                     os.remove(f)
 
-            if (v_idx != 0 and v_idx % 10 == 0):
+            if (v_idx != 0 and v_idx % 30 == 0):
                 _log_queue_put(msg="PUSH_TO_HUB")
                 _uploaded = True
                 # save meta
