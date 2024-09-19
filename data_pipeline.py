@@ -543,7 +543,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         )
 
     def _log_skip_channel(channel_id, msg):
-        _log_queue_put(level=logging.INFO, msg=msg)
+        _log_queue_put(level=logging.INFO, msg=f"SKIP: {msg}")
         with open("tmp/skipped_channels.txt", "a") as f:
             f.write(f"{channel_id}|{msg}\n")
 
