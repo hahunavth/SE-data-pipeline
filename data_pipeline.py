@@ -646,9 +646,6 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             # SNR
             _log_queue_put(msg="SNR")
             segments_snr = [estimate_snr(f) for f in segments_path]
-            segs_total_duration_h = sum([m["end"] - m["start"] for m in segments_meta]) / 16000 / 3600
-            channel_total_duration_h += segs_total_duration_h
-            to_upload_duration_h += segs_total_duration_h
 
             # AC
             _log_queue_put(msg="AC")
@@ -677,6 +674,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                         "start": vad_meta["start"],
                         "end": vad_meta["end"],
                     })
+                    channel_total_duration_h += (vad_meta["start"] - vad_meta["end"]) / 16000 / 3600
+                    to_upload_duration_h += (vad_meta["start"] - vad_meta["end"]) / 16000 / 3600
                 else:
                     os.remove(f)
 
