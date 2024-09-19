@@ -590,7 +590,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 _log_skip_channel(channel_id, f"Channel {channel_id} has _continue_for_more_duration_count > 3")
                 break
             _log_queue_put(msg=f"_continue_for_more_duration_count {_continue_for_more_duration_count}")
-            if idx >= max_video_idx:
+            if v_idx >= max_video_idx:
                 if _total_downloaded_duration < _min_download_duration:
                     _continue_for_more_duration_count += 1
                     continue
