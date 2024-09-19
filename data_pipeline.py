@@ -567,6 +567,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         to_upload_duration_h = 0
         n_video_downloaded = 0
 
+        _log_queue_put(msg=f"Max download {max_video_idx} videos")
+
         _min_download_duration = (max_video_idx - n_ignore) * 180 # 3 min * max_video_idx
         # _max_download_duration = max_video_idx * 1800 # 30 min * max_video_idx
         _uploaded = False
