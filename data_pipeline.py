@@ -576,7 +576,7 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             try:
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
 
-                _log_queue_put(level=logging.INFO, msg=f"Downloading video {video_url}")
+                _log_queue_put(level=logging.INFO, msg=f"Downloading video {v_idx} {video_url}")
                 ss, to = None, None
                 audio_path = yt_download_audio(video_url, download_dir)
                 _download_duration = math.floor(librosa.get_duration(path=audio_path))
