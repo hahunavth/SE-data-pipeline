@@ -563,6 +563,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         _skip_duration_count = 0
         _continue_for_more_duration_count = 0
         _total_downloaded_duration = 0
+        channel_total_duration_h = 0
+        n_video_downloaded = 0
 
         _min_download_duration = (max_video_idx - n_ignore) * 180 # 3 min * max_video_idx
         # _max_download_duration = max_video_idx * 1800 # 30 min * max_video_idx
@@ -614,10 +616,13 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
             # clean audio_path
             os.remove(audio_path)
 
+            n_video_downloaded += 1
+
             # SNR
             _log_queue_put(msg="SNR")
             segments_snr = [estimate_snr(f) for f in segments_path]
             segs_total_duration_h = sum([m["end"] - m["start"] for m in segments_meta]) / 16000 / 3600
+            channel_total_duration_h += segs_total_duration_h
 
             # AC
             _log_queue_put(msg="AC")
@@ -692,6 +697,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 f.write(json.dumps(_selected_channel_meta, indent=4, ensure_ascii=False))
             # upload hf
             upload_folder_retry(repo_id, "dataset", tmp_dir, path_in_repo=split, revision=branch, commit_message=f"[{channel_custom_url if channel_custom_url is not None else channel_id}](END) upload {segs_total_duration_h}h")
+
+        _log_queue_put(msg=F"DONE: {channel_id}, total_duration={channel_total_duration_h}h, n_video={n_video_downloaded}")
 
     except Exception as e:
         log_queue.put(logging.makeLogRecord({
