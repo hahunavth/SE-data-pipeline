@@ -575,6 +575,28 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
         for v_idx, video_id in enumerate(video_ids):
             if video_id in added_video_ids_set:
                 continue
+
+            if _skip_premiere_count > 3:
+                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 premiere videos in the first {max_video_idx} videos")
+                # return all_channel_meta, None
+                break
+
+            if _skip_duration_count > 3:
+                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 videos with duration < 3 min in the first {max_video_idx} videos")
+                # return all_channel_meta, None
+                break
+
+            if _continue_for_more_duration_count > 3:
+                _log_skip_channel(channel_id, f"Channel {channel_id} has _continue_for_more_duration_count > 3")
+                break
+
+            if idx >= max_video_idx:
+                if _total_downloaded_duration < _min_download_duration:
+                    _continue_for_more_duration_count += 1
+                    continue
+                else:
+                    break
+
             _uploaded = False
             try:
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
@@ -675,22 +697,8 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
                 to_upload_duration_h = 0
 
             # END VIDEO LOOP
-            if _skip_premiere_count > 3:
-                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 premiere videos in the first {max_video_idx} videos")
-                return all_channel_meta, None
 
-            if _skip_duration_count > 3:
-                _log_skip_channel(channel_id, f"Channel {channel_id} has more than 3 videos with duration < 3 min in the first {max_video_idx} videos")
-                return all_channel_meta, None
-
-            if idx >= max_video_idx:
-                if _continue_for_more_duration_count > 3:
-                    break
-                if _total_downloaded_duration < _min_download_duration:
-                    _continue_for_more_duration_count += 1
-                    continue
-                else:
-                    break
+        # END LOOP
 
         if not _uploaded:
             # save meta
