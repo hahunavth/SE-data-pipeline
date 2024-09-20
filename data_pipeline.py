@@ -520,15 +520,15 @@ def process_channel(idx, row, min_snr, min_ac_speech_prob, log_queue, repo_id=No
     if channel_n_sub < 10000:
         n_video_download = 10
     elif channel_n_sub < 30000:
-        n_video_download = 20
+        n_video_download = 30
     elif channel_n_sub < 50000:
-        n_video_download = 35
-    elif channel_n_sub < 100000:
         n_video_download = 50
-    elif channel_n_sub < 200000:
+    elif channel_n_sub < 100000:
         n_video_download = 60
+    elif channel_n_sub < 200000:
+        n_video_download = 70
     else:
-        n_video_download = 80
+        n_video_download = 90
 
     def _log_queue_put(level=logging.INFO, msg=""):
         log_queue.put(
